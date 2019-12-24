@@ -2,7 +2,7 @@ import EventEmitter from 'events';
 import pako from 'pako'
 
 import { OPCODES, STRING_OPCODES } from './protocol';
-import { unpackPixel } from './utils';
+import { unpackPixel, packPixel } from './utils';
 
 export default class Socket extends EventEmitter{
     constructor(port){
@@ -67,9 +67,9 @@ export default class Socket extends EventEmitter{
 
             case OPCODES.place: {
                 const [x, y, col] = unpackPixel(dv.getUint32(1));
-                const id = dv.getUint32(5); // применение пока не найдено
+                //const id = dv.getUint32(5); // применение пока не найдено
 
-                this.emit('place', x, y, col, id);
+                this.emit('place', x, y, col)//, id);
 
                 break
             }
@@ -81,6 +81,17 @@ export default class Socket extends EventEmitter{
         dv.setUint8(0, OPCODES.chunk);
         dv.setUint8(1, x);
         dv.setUint8(2, y);
+
+        this.socket.send(dv.buffer)
+    }
+
+    sendPixel(x, y, c){
+        if(c < 0) return;
+
+        let dv = new DataView(new ArrayBuffer(1 + 4))
+        
+        dv.setUint8(0, OPCODES.place);
+        dv.setUint32(1, packPixel(x | 0, y | 0, c));
 
         this.socket.send(dv.buffer)
     }

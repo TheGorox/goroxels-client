@@ -23,8 +23,6 @@ body {
     width: 100%;
     bottom: 0;
 
-    display: inline;
-
     padding-top: 7px;
     padding-bottom: 7px;
 
@@ -42,4 +40,6 @@ body {
 
     border: 1px solid black;
     border-radius: 5px;
+
+    display: inline-block;
 }

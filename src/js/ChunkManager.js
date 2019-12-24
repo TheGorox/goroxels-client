@@ -1,7 +1,9 @@
 import globals from './globals';
 import Chunk from './Chunk';
 import {
-    palette
+    palette,
+    chunkSize,
+    argbPalette
 } from './config';
 
 export default class ChunkManager{
@@ -17,9 +19,20 @@ export default class ChunkManager{
 
             let chunk = new Chunk(cx, cy, cdata);
             this.chunks.set(key, chunk);
-            console.log('render')
 
             globals.renderer.render();
+        })
+
+        globals.socket.on('place', (x, y, col) => {
+            let cx = x / chunkSize | 0;
+            let cy = y / chunkSize | 0;
+
+            let key = this.getChunkKey(cx, cy);
+            if(this.chunks.has(key)){
+                this.chunks.get(key).set(x % chunkSize, y % chunkSize, argbPalette[col])
+            }
+
+            globals.renderer.render()
         })
     }
 

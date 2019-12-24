@@ -37,14 +37,24 @@ elements.mainCanvas.onmousemove = (e) => {
     }
 }
 
+elements.mainCanvas.onclick = (e) => {
+    let [x, y] = screenToBoardSpace(e.clientX, e.clientY);
+
+    socket.sendPixel(x, y, player.color);
+}
+
 elements.mainCanvas.onwheel = (e) => {
     camera.zoomTo(e.deltaY);
 }
 
-palette.forEach(color => {
+palette.forEach((color, id) => {
     const el = document.createElement('div');
     el.style.backgroundColor = `rgb(${color.join(',')})`;
     el.className = 'paletteColor';
+
+    el.onclick = () => {
+        player.color = id;
+    }
     
     elements.palette.appendChild(el);
 })

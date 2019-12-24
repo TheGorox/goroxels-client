@@ -40,6 +40,6 @@ export default class Chunk{
 
     set(x, y, argb){
         this.needRender = true;
-        this.view[x + y * chunkSize] = abgr
+        this.view[x + y * chunkSize] = argb
     }
 }
