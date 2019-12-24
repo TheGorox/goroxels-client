@@ -28,7 +28,7 @@ const config = {
             use: [{
                 loader: 'babel-loader',
                 query: {
-                    presets: ['env']
+                    "presets": ["@babel/preset-env"]
                 }
             }]
         }, {
@@ -65,7 +65,7 @@ const config = {
     },
     plugins: [
         new HtmlWebpackPlugin({
-            inject: 'head',
+            inject: 'body',
             template: path.resolve(srcDir, 'index.html'),
             //favicon: path.resolve(srcDir, 'favicon.ico')
         })

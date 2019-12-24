@@ -6,6 +6,8 @@ import { unpackPixel } from './utils';
 
 export default class Socket extends EventEmitter{
     constructor(port){
+        super();
+
         const scheme = location.protocol.startsWith('https') ? 'wss' : 'ws';
         const host = location.hostname;
         this.url = `${scheme}://${host}:${port}`;
@@ -19,8 +21,10 @@ export default class Socket extends EventEmitter{
 
     connect(){
         this.socket = new WebSocket(this.url);
+        this.socket.binaryType = 'arraybuffer';
 
         this.socket.onopen = () => {
+            this.emit('opened');
             console.log('Socket has been connected');
         }
 
@@ -37,7 +41,7 @@ export default class Socket extends EventEmitter{
 
     onmessage({data: message}){
         // must be ping
-        if(!data.length) return;
+        if(!message.byteLength) return;
 
         if(typeof message === 'string'){
             this.onStringMessage(message);
@@ -70,5 +74,14 @@ export default class Socket extends EventEmitter{
                 break
             }
         }
+    }
+
+    requestChunk(x, y){
+        let dv = new DataView(new ArrayBuffer(1 + 1 + 1));
+        dv.setUint8(0, OPCODES.chunk);
+        dv.setUint8(1, x);
+        dv.setUint8(2, y);
+
+        this.socket.send(dv.buffer)
     }
 }
