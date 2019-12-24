@@ -18,6 +18,13 @@ export default class Renderer {
     }
 
     render() {
+        if(camera.zoom < 1){
+            this.ctx.imageSmoothingEnabled = true;
+            this.ctx.canvas.style.imageRendering = 'auto'
+        }else{
+            this.ctx.imageSmoothingEnabled = false;
+            this.ctx.canvas.style.imageRendering = 'pixelated'
+         }
         let chunks = getVisibleChunks();
         this.ctx.clearRect(0, 0, window.innerWidth, window.innerHeight)
 
