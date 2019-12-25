@@ -16,7 +16,7 @@ export const
         [115, 100, 100],
         [16, 24, 32]
     ],
-    minZoom = 0.2,
+    minZoom = 0.25,
     maxZoom = 64,
     argbPalette = palette.map((rgb) => rgb2abgr(...rgb)),
     boardChunkWid = boardWidth / chunkSize,

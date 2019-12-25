@@ -30,7 +30,15 @@ export function screenToBoardSpace(clientX, clientY) {
 
     return [x, y]
 }
-window.stbs = screenToBoardSpace
+export function boardToScreenSpace(x, y) {
+    x -= camera.x + halfMap[0];
+    y -= camera.y + halfMap[0];
+
+    x *= camera.zoom;
+    y *= camera.zoom;
+
+    return [x + window.innerWidth / 2 | 0, y + window.innerHeight / 2 | 0]
+}
 
 export function getVisibleChunks() {
     // todo rework it

@@ -9,7 +9,7 @@ export default class Socket extends EventEmitter{
         super();
 
         const scheme = location.protocol.startsWith('https') ? 'wss' : 'ws';
-        const host = location.hostname;
+        const host = location.hostname || 'localhost';
         this.url = `${scheme}://${host}:${port}`;
 
         this.connect();

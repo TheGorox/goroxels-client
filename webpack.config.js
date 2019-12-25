@@ -12,7 +12,7 @@ const config = {
         app: path.resolve(srcDir, 'js', 'main.js')
     },
     output: {
-        filename: '[name].js',
+        filename: 'bundle.js',
         path: path.resolve(__dirname, 'dist'),
         publicPath: '/'
     },
@@ -65,8 +65,8 @@ const config = {
     },
     plugins: [
         new HtmlWebpackPlugin({
-            inject: 'body',
             template: path.resolve(srcDir, 'index.html'),
+            
             //favicon: path.resolve(srcDir, 'favicon.ico')
         })
     ]
@@ -74,7 +74,8 @@ const config = {
 
 module.exports = async env => {
     env = env || {};
-    if (!env.prod) {
+    console.log(env)
+    if (!env.release) {
         config.mode = "development";
         config.devtool = "source-map";
         config.output.publicPath = '/';
