@@ -56,10 +56,9 @@ export default class Renderer {
         if (player.color != -1 && camera.zoom > 1) {
             this.ctx.strokeStyle = 'black';
 
-            let [x, y] = boardToScreenSpace(player.x, player.y);
+            let [x, y] = boardToScreenSpace(player.x | 0, player.y | 0);
 
             this.ctx.strokeRect(x, y, camera.zoom, camera.zoom);
-            console.log(x, y)
         }
 
         this.ctx.restore();

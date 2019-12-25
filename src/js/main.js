@@ -28,14 +28,21 @@ window.onresize = () => {
 }
 
 
-elements.mainCanvas.onmousemove = elements.mainCanvas.onpointermove = (e) => {
-    console.log(e);
-
-    [player.x, player.y] = screenToBoardSpace(e.clientX, e.clientY);
-
+elements.mainCanvas.onmousemove = (e) => {
     if(e.buttons === 1){
         camera.x -= e.movementX/camera.zoom;
         camera.y -= e.movementY/camera.zoom;
+    }else{
+        let [px, py] = screenToBoardSpace(e.clientX, e.clientY);
+        px |= 0;
+        py |= 0;
+
+        if(px === player.x && py === player.y){
+            return
+        }
+
+        player.x = px;
+        player.y = py;
     }
 
     renderer.render();

@@ -18,9 +18,10 @@ const config = {
     },
     devServer: {
         contentBase: false,
+        host: '0.0.0.0',
+        //lazy: true,
         compress: true,
-        historyApiFallback: true,
-        open: false
+        historyApiFallback: true
     },
     module: {
         rules: [{

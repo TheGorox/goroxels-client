@@ -55,7 +55,7 @@ export default class ChunkManager{
         //console.log(this.chunks, this.chunks.has(key), key)
 
         if(!this.chunks.has(key)){
-            if(!this.loadingChunks.has(key)){
+            if(!this.loadingChunks.has(key) && this.loadingChunks.size < 2){
                 this.loadChunk(x, y);
             }
 
