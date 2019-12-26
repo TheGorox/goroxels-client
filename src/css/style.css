@@ -8,7 +8,46 @@ body {
     width: 100vw;
     height: 100vh;
 
-    background-color: red;
+    background-color: gray;
+}
+
+#ui {
+    user-select: none;
+
+    color: white;
+
+    font-family: Roboto, sans-serif;
+    font-weight: bold;
+}
+
+.bubble {
+    padding: 5px;
+    background-color: rgba(0, 0, 0, .8);
+    border-radius: 5px;
+}
+
+#online{
+    display: flex;
+    
+    position: absolute;
+
+    left: 5px;
+    top: 5px;
+
+    z-index: 2;
+}
+
+#coords {
+    position: absolute;
+
+    right: 5px;
+    top: 5px;
+
+    z-index: 2;
+}
+
+#settings, #info {
+    display: none;
 }
 
 #board {

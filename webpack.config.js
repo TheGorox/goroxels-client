@@ -14,14 +14,11 @@ const config = {
     output: {
         filename: 'bundle.js',
         path: path.resolve(__dirname, 'dist'),
-        publicPath: '/'
+        publicPath: '.'
     },
     devServer: {
-        contentBase: false,
-        host: '0.0.0.0',
-        //lazy: true,
-        compress: true,
-        historyApiFallback: true
+        contentBase: '/',
+        host: '0.0.0.0'
     },
     module: {
         rules: [{
@@ -75,7 +72,7 @@ const config = {
 
 module.exports = async env => {
     env = env || {};
-    console.log(env)
+    console.log(!env.release)
     if (!env.release) {
         config.mode = "development";
         config.devtool = "source-map";

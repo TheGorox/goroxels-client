@@ -6,15 +6,15 @@ import {
     argbPalette
 } from './config';
 
-export default class ChunkManager{
-    constructor(){
+export default class ChunkManager {
+    constructor() {
         this.chunks = new Map();
 
         this.loadingChunks = new Set();
 
         globals.socket.on('chunk', (cx, cy, cdata) => {
             let key = this.getChunkKey(cx, cy);
-            if(!this.loadingChunks.has(key)) return
+            if (!this.loadingChunks.has(key)) return
             this.loadingChunks.delete(key);
 
             let chunk = new Chunk(cx, cy, cdata);
@@ -28,7 +28,7 @@ export default class ChunkManager{
             let cy = y / chunkSize | 0;
 
             let key = this.getChunkKey(cx, cy);
-            if(this.chunks.has(key)){
+            if (this.chunks.has(key)) {
                 this.chunks.get(key).set(x % chunkSize, y % chunkSize, argbPalette[col])
             }
 
@@ -36,12 +36,12 @@ export default class ChunkManager{
         })
     }
 
-    getChunkKey(x, y){
+    getChunkKey(x, y) {
         return x << 4 | y
     }
 
-    loadChunk(x, y){
-        if(globals.socket.connected){
+    loadChunk(x, y) {
+        if (globals.socket.connected) {
             let key = this.getChunkKey(x, y);
             globals.socket.requestChunk(x, y);
 
@@ -49,13 +49,13 @@ export default class ChunkManager{
         }
     }
 
-    getChunk(x, y){
+    getChunk(x, y) {
         let key = this.getChunkKey(x, y);
 
         //console.log(this.chunks, this.chunks.has(key), key)
 
-        if(!this.chunks.has(key)){
-            if(!this.loadingChunks.has(key) && this.loadingChunks.size < 2){
+        if (!this.chunks.has(key)) {
+            if (!this.loadingChunks.has(key) && this.loadingChunks.size < 2) {
                 this.loadChunk(x, y);
             }
 

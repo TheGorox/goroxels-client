@@ -1,14 +1,11 @@
-import {
-    getVisibleChunks,
-    halfMap,
-    boardToScreenSpace
-} from './utils';
-import globals from './globals';
+import ChunkPlaceholder from '../img/chunkPlaceholder.png';
 import camera from './camera';
+import { chunkSize, hexPalette } from './config';
+import globals from './globals';
+import Pattern from './Pattern';
 import player from './player';
-import {
-    chunkSize
-} from './config'
+import { boardToScreenSpace, getVisibleChunks, halfMap, mod } from './utils';
+
 
 export default class Renderer {
     /**
@@ -17,9 +14,24 @@ export default class Renderer {
      */
     constructor(ctx) {
         this.ctx = ctx;
+        this.canvas = this.ctx.canvas;
+
+        this.needRender = true;
+
+        this.chunkPlaceholderPattern = new Pattern(ChunkPlaceholder);
+        this.chunkPlaceholderPattern.onload = () => {
+            this.needRender = true;
+        }
     }
 
-    render() {
+    requestRender(){
+        if(!this.needRender) return;
+        this.needRender = false;
+
+        this.render()
+    }
+
+    correctSmoothing(){
         if (camera.zoom < 1) {
             this.ctx.imageSmoothingEnabled = true;
             this.ctx.canvas.style.imageRendering = 'auto'
@@ -27,38 +39,60 @@ export default class Renderer {
             this.ctx.imageSmoothingEnabled = false;
             this.ctx.canvas.style.imageRendering = 'pixelated'
         }
+    }
+
+    render() {
+        this.correctSmoothing();
+
         let chunks = getVisibleChunks();
-        this.ctx.clearRect(0, 0, window.innerWidth, window.innerHeight)
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
 
-        this.ctx.scale(camera.zoom, camera.zoom);
-        //this.ctx.translate(camera.x % chunkSize, camera.y % chunkSize);
+        let camX = camera.x + halfMap[0] - ((this.canvas.width >> 1) / camera.zoom);
+        let camY = camera.y + halfMap[1] - ((this.canvas.height >> 1) / camera.zoom);
 
-        let camX = camera.x + halfMap[0] - (window.innerWidth / 2 / camera.zoom);
-        let camY = camera.y + halfMap[1] - (window.innerHeight / 2 / camera.zoom);
+        let zoom = camera.zoom;
+
+        this.ctx.save();
+        this.ctx.scale(zoom, zoom);
+        this.ctx.translate(-camX, -camY)
 
         chunks.forEach(chunkCord => {
             let [cx, cy] = chunkCord;
 
-            let chunk = globals.chunkManager.getChunk(cx, cy);
-            if (!chunk) return;
+            let offX = cx * chunkSize;
+            let offY = cy * chunkSize;
 
-            let offX = chunk.x * chunkSize - camX;
-            let offY = chunk.y * chunkSize - camY;
+            let chunk = globals.chunkManager.getChunk(cx, cy);
+            if (!chunk){
+                if(this.chunkPlaceholderPattern.loaded)
+                    this.ctx.drawImage(this.chunkPlaceholderPattern.canvas, offX, offY);
+
+                return
+            };
 
             chunk.render();
             this.ctx.drawImage(chunk.ctx.canvas, offX, offY);
-        })
+        });
 
-        this.ctx.scale(1 / camera.zoom, 1 / camera.zoom);
+        this.ctx.restore();
 
         this.ctx.save();
 
-        if (player.color != -1 && camera.zoom > 1) {
+        if (player.color != -1 && zoom > 1) {
             this.ctx.strokeStyle = 'black';
+            this.ctx.fillStyle = hexPalette[player.color];
+            this.ctx.lineWidth = zoom / 30
 
             let [x, y] = boardToScreenSpace(player.x | 0, player.y | 0);
+            // this.ctx.strokeRect(player.x | 0, player.y | 0, camera.zoom, camera.zoom);
+            // this.ctx.translate(x + camera.zoom / 2, y + camera.zoom / 2);
+            // this.ctx.rotate(Math.sin(Date.now() / 500) / 2)
 
-            this.ctx.strokeRect(x, y, camera.zoom, camera.zoom);
+            // this.ctx.fillRect(0 - camera.zoom / 2, 0 - camera.zoom / 2, camera.zoom, camera.zoom);
+            // this.ctx.strokeRect(0 - camera.zoom / 2, 0 - camera.zoom / 2, camera.zoom, camera.zoom);
+
+            this.ctx.fillRect(x, y, zoom, zoom);
+            this.ctx.strokeRect(x, y, zoom, zoom);
         }
 
         this.ctx.restore();

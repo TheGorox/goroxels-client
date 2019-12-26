@@ -73,6 +73,12 @@ export default class Socket extends EventEmitter{
 
                 break
             }
+
+            case OPCODES.online: {
+                const count = dv.getUint16(1);
+
+                this.emit('online', count);
+            }
         }
     }
 

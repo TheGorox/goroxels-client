@@ -22,7 +22,5 @@ export default window.camera = {
         }else{
             this.zoom = Math.max(this.zoom / 2, minZoom);
         }
-
-        globals.renderer.render();
     }
 }

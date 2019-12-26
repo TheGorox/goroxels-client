@@ -6,6 +6,7 @@ import {
     boardChunkWid,
     boardChunkHei
 } from './config';
+import globals from './globals'
 
 export const halfMap = [
     boardWidth / 2,
@@ -25,19 +26,28 @@ export function unpackPixel(num) {
 }
 
 export function screenToBoardSpace(clientX, clientY) {
-    let x = (clientX / camera.zoom) + (camera.x + halfMap[0]) - (window.innerWidth / 2 / camera.zoom),
-        y = (clientY / camera.zoom) + (camera.y + halfMap[1]) - (window.innerHeight / 2 / camera.zoom)
+    let screenOffsetX = (clientX - (globals.renderer.canvas.width >> 1)) / camera.zoom;
+    let screenOffsetY = (clientY - (globals.renderer.canvas.height >> 1)) / camera.zoom;
 
-    return [x, y]
+    let boardOffsetX = camera.x + halfMap[0];
+    let boardOffsetY = camera.y + halfMap[1];
+    
+    let x = boardOffsetX + screenOffsetX,
+        y = screenOffsetY + boardOffsetY;
+
+    return [x | 0, y | 0]
 }
 export function boardToScreenSpace(x, y) {
     x -= camera.x + halfMap[0];
-    y -= camera.y + halfMap[0];
+    y -= camera.y + halfMap[1];
 
     x *= camera.zoom;
     y *= camera.zoom;
 
-    return [x + window.innerWidth / 2 | 0, y + window.innerHeight / 2 | 0]
+    x += globals.renderer.canvas.width >> 1;
+    y += globals.renderer.canvas.height >> 1;
+
+    return [x | 0, y | 0]
 }
 
 export function getVisibleChunks() {
@@ -55,7 +65,7 @@ export function getVisibleChunks() {
 
     let arr = []
     for (let x = Math.max(startX, 0); x < Math.min(endX, boardChunkWid); x++) {
-        for (let y = startY; y < Math.min(endY, boardChunkHei); y++) {
+        for (let y = Math.max(startY, 0); y < Math.min(endY, boardChunkHei); y++) {
             arr.push([x, y]);
         }
     }
@@ -65,4 +75,16 @@ export function getVisibleChunks() {
 
 export function rgb2abgr(r, g, b) {
     return 0xff000000 | b << 16 | g << 8 | r;
+}
+
+function component2hex(c){
+    return c.toString(16).padStart(2, '0');
+}
+
+export function rgb2hex(rgb){
+    return '#' + component2hex(rgb[0]) + component2hex(rgb[1]) + component2hex(rgb[2])
+}
+
+export function mod(n, m) {
+    return ((n % m) + m) % m;
 }
