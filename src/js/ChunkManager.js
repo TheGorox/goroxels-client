@@ -52,15 +52,17 @@ export default class ChunkManager {
     getChunk(x, y) {
         let key = this.getChunkKey(x, y);
 
-        //console.log(this.chunks, this.chunks.has(key), key)
-
         if (!this.chunks.has(key)) {
-            if (!this.loadingChunks.has(key) && this.loadingChunks.size < 2) {
+            if (!this.loadingChunks.has(key) && this.loadingChunks.size < 1) {
                 this.loadChunk(x, y);
             }
 
             return 0
         }
         return this.chunks.get(key)
+    }
+
+    getChunkPixel(){
+        
     }
 }

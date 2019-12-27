@@ -18,9 +18,14 @@ export default window.camera = {
 
     zoomTo(dir){
         if(dir < 0){
-            this.zoom = Math.min(this.zoom * 2 | 0 || 1, maxZoom);
+            this.zoom = this.zoom * 2 | 0 || 1;
         }else{
-            this.zoom = Math.max(this.zoom / 2, minZoom);
+            this.zoom = this.zoom / 2;
         }
+        this.checkZoom();
+    },
+
+    checkZoom(){
+        this.zoom = Math.min(Math.max(this.zoom, minZoom), maxZoom)
     }
 }

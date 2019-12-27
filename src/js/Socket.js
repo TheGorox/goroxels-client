@@ -3,6 +3,7 @@ import pako from 'pako'
 
 import { OPCODES, STRING_OPCODES } from './protocol';
 import { unpackPixel, packPixel } from './utils';
+import globals from './globals'
 
 export default class Socket extends EventEmitter{
     constructor(port){
@@ -93,6 +94,8 @@ export default class Socket extends EventEmitter{
 
     sendPixel(x, y, c){
         if(c < 0) return;
+        let oldC = globals.chunkManager.getChunkPixel(x, y);
+        if(oldC === c) return;
 
         let dv = new DataView(new ArrayBuffer(1 + 4))
         

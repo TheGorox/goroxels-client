@@ -6,12 +6,14 @@ import ChunkManager from './ChunkManager';
 import Renderer from './Renderer';
 import camera from './camera';
 import player from './player';
+import EventManager from './EventManager'
 import {
     screenToBoardSpace,
     halfMap
 } from './utils'
 import {
-    palette
+    palette,
+    maxZoom
 } from './config'
 
 let elements = {
@@ -20,6 +22,8 @@ let elements = {
     online: document.getElementById('onlineCounter'),
     coords: document.getElementById('coords')
 }
+
+const evMng = new EventManager(elements.mainCanvas);
 
 function updatePlayerCoords(clientX, clientY) {
     let [newX, newY] = screenToBoardSpace(clientX, clientY);
@@ -51,10 +55,10 @@ window.onresize = () => {
 }
 
 
-elements.mainCanvas.onmousemove = (e) => {
+evMng.on('mousemove', (e) => {
     if (e.buttons === 1) {
-        camera.x -= e.movementX / camera.zoom;
-        camera.y -= e.movementY / camera.zoom;
+        camera.x -= e.movementX / window.devicePixelRatio / camera.zoom;
+        camera.y -= e.movementY / window.devicePixelRatio / camera.zoom;
 
         camera.x = Math.max(Math.min(camera.x, halfMap[0]), -halfMap[0]);
         camera.y = Math.max(Math.min(camera.y, halfMap[1]), -halfMap[1]);
@@ -63,7 +67,13 @@ elements.mainCanvas.onmousemove = (e) => {
     } else {
         updatePlayerCoords(e.clientX, e.clientY);
     }
-}
+});
+
+evMng.on('zoom', (dist) => {
+    camera.zoom += dist/(maxZoom/camera.zoom);
+    camera.checkZoom();
+    renderer.needRender = true;
+})
 
 elements.mainCanvas.onclick = (e) => {
     let [x, y] = screenToBoardSpace(e.clientX, e.clientY);
@@ -96,14 +106,6 @@ ctx.imageSmoothingEnabled = false;
 const socket = new Socket(1488);
 globals.socket = socket;
 
-socket.once('opened', () => {
-    renderer.needRender = true;
-});
-
-socket.on('online', count => {
-    elements.online.innerText = count;
-})
-
 const chunkManager = new ChunkManager();
 globals.chunkManager = chunkManager;
 
@@ -118,4 +120,16 @@ const renderLoop = () => {
 }
 renderLoop();
 
+const tickLoop = setInterval(() => {
+    
+}, 1000 / 60);
+
 window.onresize();
+
+socket.once('opened', () => {
+    renderer.needRender = true;
+});
+
+socket.on('online', count => {
+    elements.online.innerText = count;
+});

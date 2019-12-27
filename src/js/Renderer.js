@@ -83,7 +83,7 @@ export default class Renderer {
             this.ctx.fillStyle = hexPalette[player.color];
             this.ctx.lineWidth = zoom / 30
 
-            let [x, y] = boardToScreenSpace(player.x | 0, player.y | 0);
+            let [x, y] = boardToScreenSpace(player.x, player.y);
             // this.ctx.strokeRect(player.x | 0, player.y | 0, camera.zoom, camera.zoom);
             // this.ctx.translate(x + camera.zoom / 2, y + camera.zoom / 2);
             // this.ctx.rotate(Math.sin(Date.now() / 500) / 2)

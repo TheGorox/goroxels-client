@@ -1,0 +1,11 @@
+Инструменты:
+Tool extends EventEmitter{
+
+}
+
+ToolManager{
+    tool: Tool,
+    on('tick', () => {
+        this.tool.emit()
+    })
+}

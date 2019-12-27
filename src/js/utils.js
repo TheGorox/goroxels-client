@@ -88,3 +88,22 @@ export function rgb2hex(rgb){
 export function mod(n, m) {
     return ((n % m) + m) % m;
 }
+
+export function boardToChunk(x, y){
+    let cx = x / chunkSize | 0;
+    let cy = y / chunkSize | 0;
+
+    let offx = x % chunkSize;
+    let offy = y % chunkSize;
+
+    return [
+        cx,
+        cy,
+        offx,
+        offy
+    ]
+}
+
+export function chunkToBoard(cx, cy, offx, offy){
+    return [cx * chunkSize + offx, cy * chunkSize + offy]
+}

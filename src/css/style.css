@@ -3,12 +3,21 @@
     margin: 0;
 }
 
-html,
-body {
-    width: 100vw;
-    height: 100vh;
+body, html {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    overflow: hidden;
 
-    background-color: gray;
+    touch-action: none;
+}
+
+body {
+    border: none;
+    user-select: none;
+    background: gray;
 }
 
 #ui {
