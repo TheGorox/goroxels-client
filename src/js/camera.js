@@ -13,7 +13,7 @@ export default window.camera = {
         this.x = x;
         this.y = y;
 
-        globals.renderer.render();
+        globals.renderer.needRender = true;
     },
 
     zoomTo(dir){

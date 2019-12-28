@@ -19,7 +19,7 @@ export const
     ],
     minZoom = 0.25,
     maxZoom = 64,
-    argbPalette = palette.map((rgb) => rgb2abgr(...rgb)),
+    argbPalette = new Uint32Array(palette.map((rgb) => rgb2abgr(...rgb))),
     hexPalette = palette.map(rgb2hex),
     boardChunkWid = boardWidth / chunkSize,
     boardChunkHei = boardHeight / chunkSize

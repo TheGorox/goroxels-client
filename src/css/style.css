@@ -93,3 +93,28 @@ body {
 
     display: inline-block;
 }
+
+.paletteColor.dark{
+    border-color: white;
+}
+
+.paletteColor.light{
+    border-color: black;
+}
+
+#tools {
+    position: absolute;
+    top: 40px;
+    left: 5px;
+}
+
+.toolContainer {
+    display: flex;
+    vertical-align: middle;
+    justify-content: center;
+    padding: 3px;
+    background-color: white;
+    border-radius: 5px;
+
+    z-index: 2;
+}

@@ -6,10 +6,11 @@ import ChunkManager from './ChunkManager';
 import Renderer from './Renderer';
 import camera from './camera';
 import player from './player';
-import EventManager from './EventManager'
+import ToolManager from './ToolManager'
 import {
     screenToBoardSpace,
-    halfMap
+    halfMap,
+    isDarkColor
 } from './utils'
 import {
     palette,
@@ -23,7 +24,7 @@ let elements = {
     coords: document.getElementById('coords')
 }
 
-const evMng = new EventManager(elements.mainCanvas);
+const evMng = globals.eventManager;
 
 function updatePlayerCoords(clientX, clientY) {
     let [newX, newY] = screenToBoardSpace(clientX, clientY);
@@ -56,17 +57,9 @@ window.onresize = () => {
 
 
 evMng.on('mousemove', (e) => {
-    if (e.buttons === 1) {
-        camera.x -= e.movementX / window.devicePixelRatio / camera.zoom;
-        camera.y -= e.movementY / window.devicePixelRatio / camera.zoom;
-
-        camera.x = Math.max(Math.min(camera.x, halfMap[0]), -halfMap[0]);
-        camera.y = Math.max(Math.min(camera.y, halfMap[1]), -halfMap[1]);
-
-        renderer.needRender = true;
-    } else {
-        updatePlayerCoords(e.clientX, e.clientY);
-    }
+    updatePlayerCoords(e.clientX, e.clientY);
+}).on('mousedown', (e) => {
+    updatePlayerCoords(e.clientX, e.clientY); // yes
 });
 
 evMng.on('zoom', (dist) => {
@@ -74,12 +67,6 @@ evMng.on('zoom', (dist) => {
     camera.checkZoom();
     renderer.needRender = true;
 })
-
-elements.mainCanvas.onclick = (e) => {
-    let [x, y] = screenToBoardSpace(e.clientX, e.clientY);
-
-    socket.sendPixel(x, y, player.color);
-}
 
 elements.mainCanvas.onwheel = (e) => {
     camera.zoomTo(e.deltaY);
@@ -91,7 +78,7 @@ elements.mainCanvas.onwheel = (e) => {
 palette.forEach((color, id) => {
     const el = document.createElement('div');
     el.style.backgroundColor = `rgb(${color.join(',')})`;
-    el.className = 'paletteColor';
+    el.classList = ['paletteColor ' + (isDarkColor(...color) ? 'dark' : 'light')];
 
     el.onclick = () => {
         player.color = id;
@@ -112,6 +99,8 @@ globals.chunkManager = chunkManager;
 const renderer = window.renderer = new Renderer(ctx);
 globals.renderer = renderer;
 
+const eventManager = new ToolManager(document.getElementById('board'));
+
 const renderLoop = () => {
     requestAnimationFrame(() => {
         renderer.requestRender();
@@ -119,10 +108,6 @@ const renderLoop = () => {
     })
 }
 renderLoop();
-
-const tickLoop = setInterval(() => {
-    
-}, 1000 / 60);
 
 window.onresize();
 

@@ -1,10 +1,12 @@
 import globals from './globals';
 import Chunk from './Chunk';
 import {
-    palette,
     chunkSize,
     argbPalette
 } from './config';
+import {
+    boardToChunk
+} from './utils'
 
 export default class ChunkManager {
     constructor() {
@@ -20,7 +22,7 @@ export default class ChunkManager {
             let chunk = new Chunk(cx, cy, cdata);
             this.chunks.set(key, chunk);
 
-            globals.renderer.render();
+            globals.renderer.needRender = true;
         })
 
         globals.socket.on('place', (x, y, col) => {
@@ -32,7 +34,7 @@ export default class ChunkManager {
                 this.chunks.get(key).set(x % chunkSize, y % chunkSize, argbPalette[col])
             }
 
-            globals.renderer.render()
+            globals.renderer.needRender = true;
         })
     }
 
@@ -62,7 +64,11 @@ export default class ChunkManager {
         return this.chunks.get(key)
     }
 
-    getChunkPixel(){
-        
+    getChunkPixel(x, y){
+        let [cx, cy, offx, offy] = boardToChunk(x, y);
+        let chunk = this.getChunk(cx, cy);
+        if(!chunk) return -1
+
+        return argbPalette.indexOf(chunk.get(offx, offy))
     }
 }

@@ -1,5 +1,5 @@
 import EventEmitter from 'events'
-import globals from './globals'
+import player from './player'
 
 export default class EventManager extends EventEmitter {
     /**
@@ -25,6 +25,7 @@ export default class EventManager extends EventEmitter {
         });
         element.addEventListener('pointermove', e => {
             if (e.buttons !== 0 && this.pointers.size > 1) {
+                // two and more fingers zoom
                 let it = this.pointers.get(e.pointerId);
                 if(!it) return;
 
@@ -37,15 +38,11 @@ export default class EventManager extends EventEmitter {
                 let dist = this.avrg(...dists);
                 if(!this._lastDist) this._lastDist = dist;
 
-                console.log(dists, dist, this._lastDist, dist - this._lastDist)
+                this.pointers.set(e.pointerId, e);
 
                 this.emit('zoom', dist - this._lastDist);
-
                 this._lastDist = dist;
-
-                this.pointers.set(e.pointerId, e);
             } else {
-                console.log('mousemode', Date.now())
                 this.emit('mousemove', e);
             }
         });
@@ -53,8 +50,15 @@ export default class EventManager extends EventEmitter {
             this._lastDist = null;
             if (!this.pointers.has(e.pointerId)) return;
 
+            if(this.pointers.size === 1)
+                this.emit('mouseup');
+
             this.pointers.delete(e.pointerId);
-        })
+        });
+
+        this.tickLoop = setInterval(() => {
+            this.emit('tick')
+        }, 1000/60);
     }
 
     dist(x1, y1, x2, y2) {
