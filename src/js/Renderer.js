@@ -4,7 +4,9 @@ import { chunkSize, hexPalette } from './config';
 import globals from './globals';
 import Pattern from './Pattern';
 import player from './player';
-import { boardToScreenSpace, getVisibleChunks, halfMap, mod } from './utils';
+import { boardToScreenSpace, getVisibleChunks, halfMap, mod, insanelyLongMobileBrowserCheck } from './utils';
+
+const isMobile = insanelyLongMobileBrowserCheck();
 
 
 export default class Renderer {
@@ -32,6 +34,9 @@ export default class Renderer {
     }
 
     correctSmoothing(){
+        // todo move it to camera
+        if(isMobile) return;
+
         if (camera.zoom < 1) {
             this.ctx.imageSmoothingEnabled = true;
             this.ctx.canvas.style.imageRendering = 'auto'
@@ -81,7 +86,7 @@ export default class Renderer {
         if (player.color != -1 && zoom > 1) {
             this.ctx.strokeStyle = 'black';
             this.ctx.fillStyle = hexPalette[player.color];
-            this.ctx.lineWidth = zoom / 30
+            this.ctx.lineWidth = zoom / 25
 
             let [x, y] = boardToScreenSpace(player.x, player.y);
             // this.ctx.strokeRect(player.x | 0, player.y | 0, camera.zoom, camera.zoom);

@@ -65,14 +65,14 @@ const config = {
         new HtmlWebpackPlugin({
             template: path.resolve(srcDir, 'index.html'),
             
-            //favicon: path.resolve(srcDir, 'favicon.ico')
+            favicon: path.resolve(srcDir, 'favicon.ico')
         })
     ]
 };
 
 module.exports = async env => {
     env = env || {};
-    console.log(!env.release)
+    console.log(env.release)
     if (!env.release) {
         config.mode = "development";
         config.devtool = "source-map";

@@ -64,10 +64,10 @@ export default class ChunkManager {
         return this.chunks.get(key)
     }
 
-    getChunkPixel(x, y){
+    getChunkPixel(x, y) {
         let [cx, cy, offx, offy] = boardToChunk(x, y);
         let chunk = this.getChunk(cx, cy);
-        if(!chunk) return -1
+        if (!chunk) return -1
 
         return argbPalette.indexOf(chunk.get(offx, offy))
     }

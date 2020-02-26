@@ -175,3 +175,19 @@ export function decodeKey(str){
 
     return config
 }
+
+export function eventToString(e){
+    if(!e.keyCode) return false;
+
+    let str = '';
+    if(e.ctrlKey) str += 'CTRL+';
+    if(e.ctrlKey) str += 'CTRL+';
+    str += e.keyCode;
+
+    return str
+}
+
+export function visible(x, y){
+    if(x < 0 || x > boardWidth || y < 0 || y > boardHeight) return false;
+    return true;
+}

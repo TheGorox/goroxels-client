@@ -36,6 +36,7 @@
     "babel-preset-env": "^1.7.0",
     "css-loader": "^3.4.0",
     "fs-extra": "^8.1.0",
+    "interactjs": "^1.7.3",
     "pako": "^1.0.10",
     "style-loader": "^1.1.1",
     "webpack-dev-server": "^3.10.1"

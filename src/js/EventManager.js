@@ -1,5 +1,9 @@
 import EventEmitter from 'events'
-import player from './player'
+import interact from 'interactjs'
+
+function anyInputFocused(){
+    return document.activeElement.tagName === 'INPUT'
+}
 
 export default class EventManager extends EventEmitter {
     /**
@@ -24,28 +28,28 @@ export default class EventManager extends EventEmitter {
             this.pointers.set(e.pointerId, e);
         });
         element.addEventListener('pointermove', e => {
-            if (e.buttons !== 0 && this.pointers.size > 1) {
-                // two and more fingers zoom
-                let it = this.pointers.get(e.pointerId);
-                if(!it) return;
-
-                let [newX, newY] = [it.clientX, it.clientY];
-
-                let dists = [];
-                this.pointers.forEach(ev => {
-                    dists.push(this.dist(ev.clientX, ev.clientY, newX, newY));
-                })
-                let dist = this.avrg(...dists);
-                if(!this._lastDist) this._lastDist = dist;
-
-                this.pointers.set(e.pointerId, e);
-
-                this.emit('zoom', dist - this._lastDist);
-                this._lastDist = dist;
-            } else {
+            if (this.pointers.size <= 1) {
                 this.emit('mousemove', e);
             }
         });
+        interact(element).gesturable({
+            onmove: e => {
+                // console.log(e);
+                this.emit('zoom', e.ds);
+
+                this.emit('mousemove', {
+                    buttons: e.buttons,
+
+                    clientX: e.clientX,
+                    clientY: e.clientY,
+                    
+                    movementX: e.dx * devicePixelRatio,
+                    movementY: e.dy * devicePixelRatio,
+
+                    gesture: true
+                })
+            }
+        })
         element.addEventListener('pointerup', e => {
             this._lastDist = null;
             if (!this.pointers.has(e.pointerId)) return;
@@ -59,6 +63,20 @@ export default class EventManager extends EventEmitter {
         this.tickLoop = setInterval(() => {
             this.emit('tick')
         }, 1000/60);
+
+        document.addEventListener('keydown', e => {
+            if(!anyInputFocused()){
+                this.emit('keydown', e)
+            }
+        });
+
+        document.addEventListener('keyup', e => {
+            if(!anyInputFocused()){ // means that this class is shit
+                this.emit('keyup', e)
+            }
+        });
+
+        element.addEventListener('wheel', e => this.emit('wheel', e))
     }
 
     dist(x1, y1, x2, y2) {

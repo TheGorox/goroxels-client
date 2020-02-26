@@ -3,7 +3,8 @@
     margin: 0;
 }
 
-body, html {
+body,
+html {
     position: fixed;
     top: 0;
     left: 0;
@@ -35,9 +36,9 @@ body {
     border-radius: 5px;
 }
 
-#online{
+#online {
     display: flex;
-    
+
     position: absolute;
 
     left: 5px;
@@ -55,7 +56,8 @@ body {
     z-index: 2;
 }
 
-#settings, #info {
+#settings,
+#info {
     display: none;
 }
 
@@ -94,11 +96,11 @@ body {
     display: inline-block;
 }
 
-.paletteColor.dark{
+.paletteColor.dark {
     border-color: white;
 }
 
-.paletteColor.light{
+.paletteColor.light {
     border-color: black;
 }
 
@@ -106,6 +108,8 @@ body {
     position: absolute;
     top: 40px;
     left: 5px;
+
+    z-index: 2;
 }
 
 .toolContainer {
@@ -116,5 +120,9 @@ body {
     background-color: white;
     border-radius: 5px;
 
-    z-index: 2;
+    image-rendering: pixelated;
+}
+
+.toolContainer.selected {
+    box-shadow: 0 0 3px 0 black inset;
 }
