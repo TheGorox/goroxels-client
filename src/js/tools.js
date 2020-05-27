@@ -2,10 +2,17 @@ import Tool from './Tool'
 import globals from './globals'
 import {
     shapes,
-    visible
+    visible,
+    boardToScreenSpace
 } from './utils'
 import camera from './camera'
 import player from './player'
+import {
+    FX
+} from './fxcanvas'
+import {
+    hexPalette
+} from './config'
 
 import clickerIcon from '../img/toolIcons/clicker.png'
 import moveIcon from '../img/toolIcons/move.png'
@@ -97,17 +104,27 @@ class Mover extends Tool {
         camera.moveTo(-e.movementX / camera.zoom / devicePixelRatio, -e.movementY / camera.zoom / devicePixelRatio)
     }
 }
-const mover = new Tool('mover', moveIcon);
+const mover = new Mover('mover', moveIcon);
 
 class FloodFill extends Tool {
     constructor(...args) {
         super(...args);
 
         this.on('up', this.up);
+        this.on('down', this.down);
         this.on('tick', this.tick);
+
+        this.previewing = false;
+        this.fx = null;
+        this.prevStack = [];
     }
 
     up() {
+        if (this.previewing) {
+            this.fx.remove();
+        }
+        this.previewing = false;
+
         if (this.active) { // stop and return
             this.active = false;
             return
@@ -126,11 +143,117 @@ class FloodFill extends Tool {
         this.fillingCol = getPixel(player.x, player.y);
     }
 
+    down() {
+        if (this.previewing) {
+            return
+        }
+
+        if (player.color === -1 || !visible(player.x, player.y)) {
+            return
+        }
+        let _lastX, _lastY;
+
+        restart.apply(this);
+
+        this.showedPixels = [];
+        this.fillingCol = getPixel(player.x, player.y);
+
+        let fx = new FX(tick.bind(this));
+        globals.fxRenderer.add(fx);
+        this.fx = fx;
+
+        globals.renderer.needRender = true;
+
+        this.previewing = true;
+
+        function restart(){
+            this.prevStack = [
+                [player.x, player.y]
+            ];
+            this.showedPixels = [];
+
+            _lastX = player.x;
+            _lastY = player.y;
+        }
+
+        function paint() {
+            if (!this.prevStack.length) return 1;
+
+            let [x, y] = this.prevStack.pop();
+
+            let color = this.playerCol;
+            let tileCol = getPixel(x, y);
+            let painted = this.showedPixels.indexOf(x + ',' + y) !== -1;
+
+            if (painted || tileCol === color || tileCol !== this.fillingCol || !visible(x, y)) {
+                return 0
+            }
+
+            this.showedPixels.push(x + ',' + y);
+
+            let top = this.checkP(x, y - 1);
+            let bottom = this.checkP(x, y + 1);
+            let left = this.checkP(x - 1, y);
+            let right = this.checkP(x + 1, y);
+            if (top && left) {
+                this.checkP(x - 1, y - 1);
+            }
+            if (top && right) {
+                this.checkP(x + 1, y - 1);
+            }
+            if (bottom && left) {
+                this.checkP(x - 1, y + 1);
+            }
+            if (bottom && right) {
+                this.checkP(x + 1, y + 1);
+            }
+
+            return 0
+        }
+
+        function tick(ctx) {
+            if(player.x != _lastX || player.y != _lastY){
+                restart.apply(this);
+            }
+
+            let res = 0;
+            for(let i = 0; i < 100 && res == 0; i++)
+                res = paint.apply(this);
+
+            
+            ctx.strokeStyle = hexPalette[player.color];
+            ctx.strokeWidth = camera.zoom;
+
+            this.showedPixels.forEach((p, i) => {
+                let [x, y] = p.split(',');
+
+                let alpha = 1;
+                let len = this.showedPixels.length
+                if(len >= 100 && i < len / 2){
+                    alpha = 1 - (((len/2) - i)/(len/2))
+                    if(alpha <= 0) return;
+                }
+                ctx.globalAlpha = alpha;
+
+                let [absX, absY] = boardToScreenSpace(x, y);
+                ctx.strokeRect(absX, absY, camera.zoom, camera.zoom);
+            });
+
+            return res
+        }
+    }
+
+    checkP(x, y) {
+        if (getPixel(x, y) !== this.fillingCol) return false;
+        this.prevStack.unshift([x, y]);
+        return true
+    }
+
     tick() {
         if (!this.active) return;
 
         // TODO
-        for (var painted = 0; painted < 9*3 && this.stack.length; painted++) {
+        for (let i = 0; i < 10 && this.stack.length; i++) {
             let [x, y] = this.stack.pop();
 
             let color = this.playerCol;
@@ -139,8 +262,6 @@ class FloodFill extends Tool {
             if (tileCol === color || tileCol !== this.fillingCol || !visible(x, y)) {
                 continue
             }
-
-            globals.socket.sendPixel(x, y, color);
 
             //this.stack.push([x, y]);
 
@@ -160,6 +281,9 @@ class FloodFill extends Tool {
             if (bottom && right) {
                 this.check(x + 1, y + 1);
             }
+
+            globals.socket.sendPixel(x, y, color);
+            globals.chunkManager.setChunkPixel(x, y, color);
         }
 
         if (!this.stack.length) return this.active = false;

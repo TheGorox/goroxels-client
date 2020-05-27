@@ -34,7 +34,7 @@ const config = {
             use: [{
                 loader: 'file-loader',
                 options: {
-                    outputPath: 'img/',
+                    outputPath: '/img/',
                     name: '[name].[ext]'
                 }
             }]
@@ -43,7 +43,7 @@ const config = {
             use: [{
                 loader: 'file-loader',
                 options: {
-                    outputPath: 'audio/',
+                    outputPath: '/audio/',
                     name: '[name].[ext]'
                 }
             }]
@@ -52,7 +52,7 @@ const config = {
             use: [{
                 loader: 'file-loader',
                 options: {
-                    outputPath: 'font/',
+                    outputPath: '/font/',
                     name: '[name].[ext]'
                 }
             }]
@@ -72,11 +72,13 @@ const config = {
 
 module.exports = async env => {
     env = env || {};
-    console.log(env.release)
+    console.log('Release: ' + !!env.release);
+    
     if (!env.release) {
         config.mode = "development";
         config.devtool = "source-map";
-        config.output.publicPath = '/';
+        console.log(`Cleaning build dir: '${config.output.path}'`);
+        await fs.remove(config.output.path);
     } else {
         config.mode = "production";
         config.output.filename = '[name].[hash].js';

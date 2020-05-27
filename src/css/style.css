@@ -61,12 +61,16 @@ body {
     display: none;
 }
 
-#board {
+#board, #fx {
     image-rendering: pixelated;
 
     position: absolute;
 
     z-index: 1;
+}
+
+#fx{
+    pointer-events: none;
 }
 
 #palette {

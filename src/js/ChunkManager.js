@@ -2,7 +2,8 @@ import globals from './globals';
 import Chunk from './Chunk';
 import {
     chunkSize,
-    argbPalette
+    argbPalette,
+    argbToId
 } from './config';
 import {
     boardToChunk
@@ -26,13 +27,7 @@ export default class ChunkManager {
         })
 
         globals.socket.on('place', (x, y, col) => {
-            let cx = x / chunkSize | 0;
-            let cy = y / chunkSize | 0;
-
-            let key = this.getChunkKey(cx, cy);
-            if (this.chunks.has(key)) {
-                this.chunks.get(key).set(x % chunkSize, y % chunkSize, argbPalette[col])
-            }
+            this.setChunkPixel(x, y, col);
 
             globals.renderer.needRender = true;
         })
@@ -43,22 +38,25 @@ export default class ChunkManager {
     }
 
     loadChunk(x, y) {
-        if (globals.socket.connected) {
-            let key = this.getChunkKey(x, y);
+        let key = this.getChunkKey(x, y);
+
+        if (globals.socket.connected && !this.loadingChunks.has(key) && this.loadingChunks.size < 3) {
             globals.socket.requestChunk(x, y);
 
             this.loadingChunks.add(key);
         }
     }
 
+    hasChunk(x, y) {
+        let key = this.getChunkKey(x, y);
+
+        return this.chunks.has(key);
+    }
+
     getChunk(x, y) {
         let key = this.getChunkKey(x, y);
 
         if (!this.chunks.has(key)) {
-            if (!this.loadingChunks.has(key) && this.loadingChunks.size < 1) {
-                this.loadChunk(x, y);
-            }
-
             return 0
         }
         return this.chunks.get(key)
@@ -69,6 +67,17 @@ export default class ChunkManager {
         let chunk = this.getChunk(cx, cy);
         if (!chunk) return -1
 
-        return argbPalette.indexOf(chunk.get(offx, offy))
+        let argb = chunk.get(offx, offy);
+
+        return argbToId[argb]
+    }
+
+    setChunkPixel(x, y, col) {
+        let [cx, cy, offx, offy] = boardToChunk(x, y);
+
+        let key = this.getChunkKey(cx, cy);
+        if (this.chunks.has(key)) {
+            this.chunks.get(key).set(offx, offy, argbPalette[col])
+        }
     }
 }

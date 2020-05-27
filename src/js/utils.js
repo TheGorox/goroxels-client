@@ -44,11 +44,38 @@ export function boardToScreenSpace(x, y) {
     x *= camera.zoom;
     y *= camera.zoom;
 
-    x += globals.renderer.canvas.width >> 1;
+    x += globals.renderer.canvas.width >> 1; // x >> 1 = x / 2
     y += globals.renderer.canvas.height >> 1;
 
     return [x | 0, y | 0]
 }
+
+export function isAreaVisible(x, y, w, h){
+    let sx = camera.x + halfMap[0],
+        sy = camera.y + halfMap[1];
+    
+    let ex = sx + window.innerWidth / camera.zoom,
+        ey = sy + window.innerHeight / camera.zoom;
+
+    return x + w >= sx && x < ex &&
+           y + h >= sy && y < ey
+}
+
+// export function getVisibleChunks() {
+//     let arr = [];
+    
+//     console.log(globals.chunkManager.chunks);
+//     globals.chunkManager.chunks.forEach((val, key) => {
+//         let [x, y] = key;
+
+//         if(isAreaVisible(x, y, chunkSize, chunkSize)){
+//             arr.push(x, y);
+//         }
+//     });
+
+//     console.log(arr)
+//     return arr
+// }
 
 export function getVisibleChunks() {
     // todo rework it

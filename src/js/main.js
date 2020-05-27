@@ -4,6 +4,9 @@ import Socket from './Socket';
 import globals from './globals';
 import ChunkManager from './ChunkManager';
 import Renderer from './Renderer';
+import {
+    FXRenderer
+} from './fxcanvas';
 import camera from './camera';
 import player from './player';
 import ToolManager from './ToolManager'
@@ -19,6 +22,7 @@ const isMobile = insanelyLongMobileBrowserCheck();
 
 let elements = {
     mainCanvas: document.getElementById('board'),
+    fxCanvas: document.getElementById('fx'),
     palette: document.getElementById('palette'),
     online: document.getElementById('onlineCounter'),
     coords: document.getElementById('coords')
@@ -27,6 +31,9 @@ let elements = {
 window.onresize = () => {
     elements.mainCanvas.width = window.innerWidth;
     elements.mainCanvas.height = window.innerHeight;
+
+    elements.fxCanvas.width = window.innerWidth;
+    elements.fxCanvas.height = window.innerHeight;
 
     ctx.imageSmoothingEnabled = false;
     ctx.webkitImageSmoothingEnabled = false;
@@ -52,7 +59,7 @@ palette.forEach((color, id) => {
 const ctx = elements.mainCanvas.getContext('2d');
 ctx.imageSmoothingEnabled = false;
 
-const socket = new Socket(1488);
+const socket = new Socket(location.port || 80);
 globals.socket = socket;
 
 const chunkManager = new ChunkManager();
@@ -60,6 +67,9 @@ globals.chunkManager = chunkManager;
 
 const renderer = window.renderer = new Renderer(ctx);
 globals.renderer = renderer;
+
+const fxRenderer = new FXRenderer();
+globals.fxRenderer = fxRenderer;
 
 /* const eventManager = */new ToolManager(document.getElementById('board'));
 
@@ -80,3 +90,5 @@ socket.once('opened', () => {
 socket.on('online', count => {
     elements.online.innerText = count;
 });
+
+window.globals = globals;

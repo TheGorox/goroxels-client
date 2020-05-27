@@ -67,13 +67,17 @@ export default class Renderer {
             let offX = cx * chunkSize;
             let offY = cy * chunkSize;
 
-            let chunk = globals.chunkManager.getChunk(cx, cy);
-            if (!chunk){
+
+            if (!globals.chunkManager.hasChunk(cx, cy)){
+                globals.chunkManager.loadChunk(cx, cy);
+                
                 if(this.chunkPlaceholderPattern.loaded)
-                    this.ctx.drawImage(this.chunkPlaceholderPattern.canvas, offX, offY);
+                    this.ctx.drawImage(this.chunkPlaceholderPattern.canvas, offX, offY, chunkSize, chunkSize);
 
                 return
-            };
+            }
+            
+            let chunk = globals.chunkManager.getChunk(cx, cy);
 
             chunk.render();
             this.ctx.drawImage(chunk.ctx.canvas, offX, offY);
@@ -89,17 +93,13 @@ export default class Renderer {
             this.ctx.lineWidth = zoom / 25
 
             let [x, y] = boardToScreenSpace(player.x, player.y);
-            // this.ctx.strokeRect(player.x | 0, player.y | 0, camera.zoom, camera.zoom);
-            // this.ctx.translate(x + camera.zoom / 2, y + camera.zoom / 2);
-            // this.ctx.rotate(Math.sin(Date.now() / 500) / 2)
-
-            // this.ctx.fillRect(0 - camera.zoom / 2, 0 - camera.zoom / 2, camera.zoom, camera.zoom);
-            // this.ctx.strokeRect(0 - camera.zoom / 2, 0 - camera.zoom / 2, camera.zoom, camera.zoom);
 
             this.ctx.fillRect(x, y, zoom, zoom);
             this.ctx.strokeRect(x, y, zoom, zoom);
         }
 
         this.ctx.restore();
+
+        globals.fxRenderer.render();
     }
 }
