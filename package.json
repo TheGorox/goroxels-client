@@ -4,9 +4,9 @@
   "description": "",
   "main": "src/js/main.js",
   "scripts": {
+    "devBuild": "..\\goroxels-server\\utils\\copyConfig.bat && webpack",
     "build": "webpack",
-    "watch": "webpack -w",
-    "start": "webpack-dev-server",
+    "devRelease": "..\\goroxels-server\\utils\\copyConfig.bat && webpack --env.release",
     "release": "webpack --env.release"
   },
   "private": true,
