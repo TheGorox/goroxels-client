@@ -253,7 +253,7 @@ class FloodFill extends Tool {
         if (!this.active) return;
 
         // TODO
-        for (let i = 0; i < 10 && this.stack.length; i++) {
+        for (let i = 0; i < 100 && this.stack.length; i++) {
             let [x, y] = this.stack.pop();
 
             let color = this.playerCol;
