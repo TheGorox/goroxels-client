@@ -14,6 +14,9 @@ import {
     boardHeight
 } from './config'
 import globals from './globals'
+import {
+    updateMe
+} from './actions'
 
 export default class Socket extends EventEmitter {
     constructor(port) {
@@ -36,9 +39,11 @@ export default class Socket extends EventEmitter {
 
         this.socket.onopen = () => {
             this.sendCanvas(globals.canvasId);
-            
+
             this.emit('opened');
             console.log('Socket has been connected');
+
+            updateMe();
         }
 
         this.socket.onmessage = this.onmessage.bind(this);
@@ -112,7 +117,6 @@ export default class Socket extends EventEmitter {
         if (oldC === c || c === -1) return;
         if (x < 0 || x >= boardWidth ||
             y < 0 || y >= boardHeight) {
-
             return
         }
 
@@ -121,10 +125,10 @@ export default class Socket extends EventEmitter {
         dv.setUint8(0, OPCODES.place);
         dv.setUint32(1, packPixel(x | 0, y | 0, c));
 
-        this.socket.send(dv.buffer)
+        this.socket.send(dv.buffer);
     }
 
-    sendCanvas(id){
+    sendCanvas(id) {
         const dv = new DataView(new ArrayBuffer(2));
         dv.setUint8(0, OPCODES.canvas);
         dv.setUint8(1, id);

@@ -6,7 +6,7 @@ import player from './player'
 import {
     insanelyLongMobileBrowserCheck,
     screenToBoardSpace,
-    eventToString
+    stringifyKeyEvent
 } from './utils'
 import {
     maxZoom
@@ -26,7 +26,7 @@ function updatePlayerCoords(clientX, clientY) {
 
     coords.innerText = `(${player.x}, ${player.y})`
 
-    if (player.color != -1)
+    if (player.color != -1 && camera.zoom > 1)
         globals.renderer.needRender = true;
 }
 
@@ -121,35 +121,46 @@ export default class ToolManager extends EventEmitter {
                 });
             });
         } else {
+            em.on('mousedown', e => {
+                this.tools.mover.emit('down', e)
+            });
+            em.on('mouseup', e => {
+                this.tools.mover.emit('up', e)
+            });
             em.on('mousemove', e => {
-                if (e.buttons != 0) {
-                    camera.moveTo(-e.movementX / camera.zoom / devicePixelRatio, -e.movementY / camera.zoom / devicePixelRatio);
-                } else {
+                if (e.buttons === 0) {
                     updatePlayerCoords(e.clientX, e.clientY);
                 }
 
+                this.tool != tools.mover && this.tools.mover.emit('move', e);
                 this.tool.emit('move', e)
             });
 
             em.on('keydown', e => {
-                let str = eventToString(e);
+                let str = stringifyKeyEvent(e);
                 if (!str) return;
 
                 const tool = this._keyBinds[str];
 
                 if (tool) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
                     this.tool = tool; // костыль, переделать
                     tool.emit('down');
                 }
             });
 
             em.on('keyup', e => {
-                let str = eventToString(e);
+                let str = stringifyKeyEvent(e);
                 if (!str) return;
 
                 const tool = this._keyBinds[str];
 
                 if (tool) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
                     tool.emit('up');
                 }
             });
@@ -163,8 +174,6 @@ export default class ToolManager extends EventEmitter {
 
                 camera.moveTo((dx / oldZoom), (dy / oldZoom));
                 camera.moveTo(-(dx / camera.zoom), -(dy / camera.zoom));
-
-                renderer.needRender = true;
             });
 
             em.on('tick', e => {

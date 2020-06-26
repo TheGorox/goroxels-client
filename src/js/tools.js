@@ -17,9 +17,20 @@ import {
 import clickerIcon from '../img/toolIcons/clicker.png'
 import moveIcon from '../img/toolIcons/move.png'
 import floodfillIcon from '../img/toolIcons/floodfill.png'
+import pipetteIcon from '../img/toolIcons/pipette.png'
+
+const mobile = globals.mobile;
 
 function getPixel(x, y) {
     return globals.chunkManager.getChunkPixel(x, y)
+}
+
+function render(){
+    globals.renderer.needRender = true;
+}
+
+function renderFX(){
+    globals.fxRenderer.needRender = true;
 }
 
 class Clicker extends Tool {
@@ -57,17 +68,19 @@ class Clicker extends Tool {
         const color = player.color;
 
         let pixels = shapes.line(this.lastPos[0], this.lastPos[1], x, y);
+        this.lastPos = [x, y];
 
-        // TODO replace with for..of when cooldown
-        pixels.forEach(([x, y]) => {
+        for (let [x, y] of pixels) {
             const key = `${x},${y}`;
-            if (this._pendingPixels[key] && this._pendingPixels[key][0] === color) return;
+            if (this._pendingPixels[key] && this._pendingPixels[key][0] === color) continue;
             this._pendingPixels[key] = [color, Date.now()];
 
-            globals.socket.sendPixel(x, y, color)
-        });
+            if (!player.bucket.spend(1))
+                break
 
-        this.lastPos = [x, y];
+
+            globals.socket.sendPixel(x, y, color);
+        }
     }
 
     clearPending() {
@@ -89,19 +102,66 @@ class Mover extends Tool {
         this.on('down', this.down);
         this.on('up', this.up);
         this.on('move', this.move);
+
+        this.downPos = [0, 0];
+        this.lastPos = [0, 0];
+
+        this.fx = new FX(this.renderCursor);
+        // костыль
+        setTimeout(() => globals.fxRenderer.add(this.fx));
     }
 
-    down() {
+    renderCursor(ctx){
+        const zoom = camera.zoom;
+
+        if (player.color != -1 && zoom > 1) {
+            renderFX();
+
+            ctx.strokeStyle = hexPalette[player.color];
+            //ctx.fillStyle = hexPalette[player.color];
+            ctx.lineWidth = zoom/5;
+
+            const [x, y] = boardToScreenSpace(player.x, player.y);
+
+            //ctx.fillRect(x, y, zoom, zoom);
+            ctx.strokeRect(x, y, zoom, zoom);
+        }
+    }
+
+    down(e) {
         this.mousedown = true;
+
+        if (!mobile) {
+            this.downPos = this.lastPos = [e.clientX, e.clientY]
+        }
     }
     up() {
         this.mousedown = false;
+
+        if (!mobile && this.moveThresold()){
+            clicker.down(); // lol yes
+            clicker.up();
+        }
     }
 
     move(e) {
+        renderFX();
+
         if (!this.mousedown) return;
 
-        camera.moveTo(-e.movementX / camera.zoom / devicePixelRatio, -e.movementY / camera.zoom / devicePixelRatio)
+        if (!mobile) {
+            this.lastPos = [e.clientX, e.clientY]
+
+            if (this.moveThresold())
+                return
+        }
+
+        camera.moveTo(-e.movementX / camera.zoom / devicePixelRatio, -e.movementY / camera.zoom / devicePixelRatio);
+    }
+
+    moveThresold(){
+        return (Math.abs(this.downPos[0] - this.lastPos[0]) < 5 &&
+        Math.abs(this.downPos[1] - this.lastPos[1]) < 5)
     }
 }
 const mover = new Mover('mover', moveIcon);
@@ -162,11 +222,11 @@ class FloodFill extends Tool {
         globals.fxRenderer.add(fx);
         this.fx = fx;
 
-        globals.renderer.needRender = true;
+        //globals.renderer.needRender = true;
 
         this.previewing = true;
 
-        function restart(){
+        function restart() {
             this.prevStack = [
                 [player.x, player.y]
             ];
@@ -212,15 +272,15 @@ class FloodFill extends Tool {
         }
 
         function tick(ctx) {
-            if(player.x != _lastX || player.y != _lastY){
+            if (player.x != _lastX || player.y != _lastY) {
                 restart.apply(this);
             }
 
             let res = 0;
-            for(let i = 0; i < 100 && res == 0; i++)
+            for (let i = 0; i < 100 && res == 0; i++)
                 res = paint.apply(this);
 
-            
+
             ctx.strokeStyle = hexPalette[player.color];
             ctx.strokeWidth = camera.zoom;
 
@@ -229,9 +289,9 @@ class FloodFill extends Tool {
 
                 let alpha = 1;
                 let len = this.showedPixels.length
-                if(len >= 100 && i < len / 2){
-                    alpha = 1 - (((len/2) - i)/(len/2))
-                    if(alpha <= 0) return;
+                if (len >= 100 && i < len / 2) {
+                    alpha = 1 - (((len / 2) - i) / (len / 2))
+                    if (alpha <= 0) return;
                 }
                 ctx.globalAlpha = alpha;
 
@@ -253,7 +313,9 @@ class FloodFill extends Tool {
         if (!this.active) return;
 
         // TODO
-        for (let i = 0; i < 100 && this.stack.length; i++) {
+        for (let i = 0; i < 8 && this.stack.length; i++) {
+            if (!player.bucket.spend(1)) break;
+
             let [x, y] = this.stack.pop();
 
             let color = this.playerCol;
@@ -297,8 +359,27 @@ class FloodFill extends Tool {
 }
 const floodfill = new FloodFill('floodfill', floodfillIcon, 'F'.charCodeAt());
 
+class Pipette extends Tool {
+    constructor(...args) {
+        super(...args);
+
+        this.on('down', this.down);
+    }
+
+    down() {
+        const color = getPixel(player.x, player.y);
+
+        if(color === -1) return;
+
+        player.color = color;
+        renderFX();
+    }
+}
+const pipette = new Pipette('pipette', pipetteIcon, 'C'.charCodeAt());
+
 export default {
     clicker,
     mover,
-    floodfill
+    floodfill,
+    pipette
 }

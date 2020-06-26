@@ -8,6 +8,8 @@ import {
 } from './config';
 import globals from './globals'
 
+import $ from 'jquery';
+
 export const halfMap = [
     boardWidth / 2,
     boardHeight / 2
@@ -203,18 +205,28 @@ export function decodeKey(str){
     return config
 }
 
-export function eventToString(e){
-    if(!e.keyCode) return false;
-
-    let str = '';
-    if(e.ctrlKey) str += 'CTRL+';
-    if(e.ctrlKey) str += 'CTRL+';
-    str += e.keyCode;
-
-    return str
+export function stringifyKeyEvent(ev){
+    let out = '';
+    if(ev.altKey){
+        out += 'ALT+'
+    }
+    if(ev.ctrlKey){
+        out += 'CTRL+'
+    }
+    return out + ev.keyCode
 }
 
 export function visible(x, y){
     if(x < 0 || x > boardWidth || y < 0 || y > boardHeight) return false;
     return true;
+}
+
+export function calculateColumnSize(){
+    const columns = $('.column', globals.elements.topMenuContent);
+    const windowWidth = window.innerWidth;
+
+    const colWidth = windowWidth / columns.length;
+
+    console.log('calculated wid: ' + colWidth, $('.column', globals.elements.topMenuContent));
+    $('.column', globals.elements.topMenuContent).css('width', colWidth);
 }
