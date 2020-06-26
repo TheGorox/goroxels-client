@@ -1,4 +1,4 @@
-import _ from './assets'
+import _ from './assets';
 
 import Socket from './Socket';
 import globals from './globals';
@@ -7,26 +7,23 @@ import Renderer from './Renderer';
 import {
     FXRenderer
 } from './fxcanvas';
-import camera from './camera';
 import player from './player';
 import ToolManager from './ToolManager'
 import {
     isDarkColor,
-    insanelyLongMobileBrowserCheck
+    calculateColumnSize
 } from './utils'
+
 import {
     palette
 } from './config'
+import {
+    updateMe
+} from './actions'
+import {init as initTranslate} from './translate'
+//import { import } from '../../../goroxels-server/src/db';
 
-const isMobile = insanelyLongMobileBrowserCheck();
-
-let elements = {
-    mainCanvas: document.getElementById('board'),
-    fxCanvas: document.getElementById('fx'),
-    palette: document.getElementById('palette'),
-    online: document.getElementById('onlineCounter'),
-    coords: document.getElementById('coords')
-}
+const {elements} = globals;
 
 window.onresize = () => {
     elements.mainCanvas.width = window.innerWidth;
@@ -42,6 +39,8 @@ window.onresize = () => {
     ctx.oImageSmoothingEnabled = false;
 
     renderer.needRender = true;
+
+    calculateColumnSize();
 }
 
 palette.forEach((color, id) => {
@@ -71,7 +70,7 @@ globals.renderer = renderer;
 const fxRenderer = new FXRenderer();
 globals.fxRenderer = fxRenderer;
 
-/* const eventManager = */new ToolManager(document.getElementById('board'));
+new ToolManager(document.getElementById('board'));
 
 const renderLoop = () => {
     requestAnimationFrame(() => {
@@ -83,8 +82,7 @@ renderLoop();
 
 window.onresize();
 
-socket.once('opened', () => {
-    renderer.needRender = true;
+socket.on('opened', () => {
 });
 
 socket.on('online', count => {
@@ -92,3 +90,6 @@ socket.on('online', count => {
 });
 
 window.globals = globals;
+
+updateMe();
+initTranslate();
