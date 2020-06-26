@@ -1,6 +1,8 @@
 * {
     padding: 0;
     margin: 0;
+
+    box-sizing: border-box;
 }
 
 body,
@@ -61,7 +63,8 @@ body {
     display: none;
 }
 
-#board, #fx {
+#board,
+#fx {
     image-rendering: pixelated;
 
     position: absolute;
@@ -69,7 +72,7 @@ body {
     z-index: 1;
 }
 
-#fx{
+#fx {
     pointer-events: none;
 }
 
@@ -129,4 +132,54 @@ body {
 
 .toolContainer.selected {
     box-shadow: 0 0 3px 0 black inset;
+}
+
+#temPos,
+a,
+a:visited,
+.window {
+    color: var(--light-text);
+}
+
+#topMenu {
+    width: 100vw;
+    left: 0;
+    background-color: #404040;
+    z-index: 3;
+    position: absolute;
+}
+
+#topMenu,
+#chat {
+    transition: all .3s cubic-bezier(1, -.45, .99, .75);
+}
+
+.content{
+    width: 100%;
+    display: flex;
+    position: relative;
+}
+
+/*
+    Костыль
+*/
+.content:nth-child(1), .content:nth-child(2){
+    border-right: 3px solid #4C4C4C;
+}
+
+/*
+    Костыль, resizer должен быть гибким классом
+*/
+#resizer{
+    width: 100%;
+    position: absolute;
+    bottom: 0;
+    height: 3px;
+    cursor: row-resize;
+    user-select: none;
+}
+
+.columnContent{
+    height: 123px;
+    overflow-y: auto;
 }
