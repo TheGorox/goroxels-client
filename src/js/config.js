@@ -19,7 +19,8 @@ export const
     argbPalette = new Uint32Array(palette.map((rgb) => rgb2abgr(...rgb))),
     hexPalette = palette.map(rgb2hex),
     boardChunkWid = canvasConf.boardWidth,
-    boardChunkHei = canvasConf.boardHeight
+    boardChunkHei = canvasConf.boardHeight,
+    cooldown = canvasConf.cooldown
 
 export const argbToId = {};
 Array.from(argbPalette.values()).forEach((argb, i) => argbToId[argb] = i)
