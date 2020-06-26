@@ -18,19 +18,24 @@ export default class Renderer {
         this.ctx = ctx;
         this.canvas = this.ctx.canvas;
 
-        this.needRender = true;
-
         this.chunkPlaceholderPattern = new Pattern(ChunkPlaceholder);
         this.chunkPlaceholderPattern.onload = () => {
             this.needRender = true;
         }
+
+        this.needRender = true;
     }
 
     requestRender(){
-        if(!this.needRender) return;
-        this.needRender = false;
+        if(this.needRender){
+            this.needRender = false;
 
-        this.render()
+            this.render()
+        }
+
+        //if(globals.fxRenderer.needRender){ // todo move it somewhere
+            globals.fxRenderer.render();
+        //}
     }
 
     correctSmoothing(){
@@ -87,19 +92,6 @@ export default class Renderer {
 
         this.ctx.save();
 
-        if (player.color != -1 && zoom > 1) {
-            this.ctx.strokeStyle = 'black';
-            this.ctx.fillStyle = hexPalette[player.color];
-            this.ctx.lineWidth = zoom / 25
-
-            let [x, y] = boardToScreenSpace(player.x, player.y);
-
-            this.ctx.fillRect(x, y, zoom, zoom);
-            this.ctx.strokeRect(x, y, zoom, zoom);
-        }
-
         this.ctx.restore();
-
-        globals.fxRenderer.render();
     }
 }

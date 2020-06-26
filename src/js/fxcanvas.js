@@ -27,14 +27,23 @@ export class FXRenderer {
     constructor() {
         this.fxList = [];
         this.ctx = globals.fxCtx;
+
+        this.needRender = true;
+        this.needClear = false;
     }
 
     add(fx){
         this.fxList.push(fx);
+
+        this.needRender = true;
     }
 
     render() {
+        if(!this.needRender) return;
+
         this.ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        
+        this.needRender = false;
 
         this.fxList.slice().forEach(fx => {
             if(fx.removed) return this.remove(fx);
@@ -44,7 +53,7 @@ export class FXRenderer {
             if(r == 2){
                 this.remove(fx);
             }else if(r == 0){
-                globals.renderer.needRender = true;
+                this.needRender = true;
             }
         })
     }
