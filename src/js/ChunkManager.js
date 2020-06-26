@@ -3,11 +3,14 @@ import Chunk from './Chunk';
 import {
     chunkSize,
     argbPalette,
-    argbToId
+    argbToId,
+    hexPalette
 } from './config';
 import {
-    boardToChunk
+    boardToChunk,
+    boardToScreenSpace
 } from './utils'
+import camera from './camera'
 
 export default class ChunkManager {
     constructor() {
@@ -28,6 +31,11 @@ export default class ChunkManager {
 
         globals.socket.on('place', (x, y, col) => {
             this.setChunkPixel(x, y, col);
+
+            // let [clientX, clientY] = boardToScreenSpace(x, y);
+
+            // globals.mainCtx.fillStyle = hexPalette[col];
+            // globals.mainCtx.fillRect(clientX, clientY, camera.zoom, camera.zoom);
 
             globals.renderer.needRender = true;
         })
