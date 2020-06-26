@@ -22,14 +22,6 @@ const config = {
     },
     module: {
         rules: [{
-            include: path.resolve(srcDir, 'js'),
-            use: [{
-                loader: 'babel-loader',
-                query: {
-                    "presets": ["@babel/preset-env"]
-                }
-            }]
-        }, {
             include: path.resolve(srcDir, 'img'),
             use: [{
                 loader: 'file-loader',
@@ -64,7 +56,7 @@ const config = {
     plugins: [
         new HtmlWebpackPlugin({
             template: path.resolve(srcDir, 'index.html'),
-            
+
             favicon: path.resolve(srcDir, 'favicon.ico')
         })
     ]
@@ -73,7 +65,7 @@ const config = {
 module.exports = async env => {
     env = env || {};
     console.log('Release: ' + !!env.release);
-    
+
     if (!env.release) {
         config.mode = "development";
         config.devtool = "source-map";
