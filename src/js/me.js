@@ -1,10 +1,10 @@
 export default {
     registered: false,
-    username: null,
+    name: null,
     role: 'guest',
     update(newMe){
         this.registered = newMe.registered || false;
-        this.username = newMe.username || null;
+        this.name = newMe.name || null;
         this.role = newMe.role || 'guest';
     }
 }

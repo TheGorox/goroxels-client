@@ -1,16 +1,17 @@
-import EventEmitter from 'events'
-import globals from './globals'
-import tools from './tools'
-import camera from './camera'
-import player from './player'
+import EventEmitter from 'events';
+import globals from './globals';
+import tools from './tools';
+import camera from './camera';
+import player from './player';
+import {
+    screenToBoardSpace
+} from './utils/conversions';
 import {
     insanelyLongMobileBrowserCheck,
-    screenToBoardSpace,
-    stringifyKeyEvent
-} from './utils'
-import {
-    maxZoom
-} from './config'
+    stringifyKeyEvent,
+    decodeKey
+} from './utils/misc';
+import toastr from 'toastr';
 
 const coords = document.getElementById('coords');
 
@@ -53,8 +54,8 @@ export default class ToolManager extends EventEmitter {
             const tool = this.tools[name];
 
             if (isMobile) {
-                if(!tool.icon) return;
-                
+                if (!tool.icon) return;
+
                 let el = document.createElement('div');
                 el.classList = 'toolContainer';
                 let img = document.createElement('img');
@@ -110,17 +111,28 @@ export default class ToolManager extends EventEmitter {
             ];
 
             events.forEach(event => {
-                em.on(event[0], e => {
+                const [realEvent, myEvent] = event[0];
+                em.on(realEvent, e => {
+                    if(event === 'tick'){
+                        Object.keys(this.tools).forEach(name => {
+                            const tool = this.tools[name];
+                            if(tool.listenerCount(e) > 0){
+                                tool.emit(myEvent, e);
+                            }
+                        });
+                        return
+                    }
                     let tool = this.tool;
                     if (e && e.gesture) {
                         tool = this.tools.mover;
                     }
                     if (!tool) return
 
-                    tool.emit(event[1], e);
+                    tool.emit(myEvent, e);
                 });
             });
         } else {
+            // TODO все слушатели напрямую к eventManager
             em.on('mousedown', e => {
                 this.tools.mover.emit('down', e)
             });
@@ -146,8 +158,9 @@ export default class ToolManager extends EventEmitter {
                     e.preventDefault();
                     e.stopPropagation();
 
+                    // todo
                     this.tool = tool; // костыль, переделать
-                    tool.emit('down');
+                    tool.emit('down', e);
                 }
             });
 
@@ -157,11 +170,23 @@ export default class ToolManager extends EventEmitter {
 
                 const tool = this._keyBinds[str];
 
+                for(let name of Object.keys(this.tools)){
+                    const tool2 = this.tools[name];
+
+                    if(!tool2.key || tool2 === tool)
+                        continue;
+
+                    const key = decodeKey(tool2.key);
+                    if(key.keyCode === e.keyCode){
+                        tool2.emit('up', e)
+                    }
+                }
+
                 if (tool) {
                     e.preventDefault();
                     e.stopPropagation();
 
-                    tool.emit('up');
+                    tool.emit('up', e);
                 }
             });
 
@@ -177,18 +202,21 @@ export default class ToolManager extends EventEmitter {
             });
 
             em.on('tick', e => {
-                this.tool.emit('tick', e);
+                Object.keys(this.tools).forEach(name => {
+                    const tool = this.tools[name];
+                    if(tool.listenerCount('tick') > 0){
+                        tool.emit('tick', e);
+                    }
+                });
             });
         }
     }
 
-    changeKey(toolName, key) {
-        const tool = this.tools[toolName];
-        if (!tool) return console.error('Tool not found wtf');
-
+    changeKey(tool, key) {
         const oldKey = tool.key;
         delete this._keyBinds[oldKey];
 
-        this._keyBinds[key] = toolName
+        tool.key = key;
+        this._keyBinds[key] = tool
     }
 }

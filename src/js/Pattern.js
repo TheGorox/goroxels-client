@@ -1,5 +1,3 @@
-import globals from './globals'
-
 export default class Pattern{
     constructor(url){
         this.url = url;

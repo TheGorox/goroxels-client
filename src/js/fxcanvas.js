@@ -1,7 +1,4 @@
-import globals from './globals'
-import {
-    boardToChunk
-} from './utils'
+import globals from './globals';
 
 const NOT_FINISHED = 0,
     FINISHED = 1,
@@ -28,13 +25,31 @@ export class FXRenderer {
         this.fxList = [];
         this.ctx = globals.fxCtx;
 
-        this.needRender = true;
+        this._needRender = true;
         this.needClear = false;
     }
 
     add(fx){
         this.fxList.push(fx);
 
+        this._needRender = true;
+    }
+
+    get needRender(){
+        return this._needRender
+    }
+
+    set needRender(val){
+        //val && console.log('render attempt');
+
+        this._needRender = val;
+    }
+
+    /*
+      You can request it by returning zero in rendering
+      functions or explicitly ↓
+    */
+    requestRender(){
         this.needRender = true;
     }
 
@@ -49,6 +64,12 @@ export class FXRenderer {
             if(fx.removed) return this.remove(fx);
 
             let r = fx.render(this.ctx);
+
+            /*
+              0 - not finished yet
+              1 - finished but continue rendering
+              2 - finished
+            */
 
             if(r == 2){
                 this.remove(fx);

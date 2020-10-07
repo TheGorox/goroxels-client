@@ -6,6 +6,7 @@ import {
     boardHeight
 } from './config'
 
+
 export default window.camera = {
     x: 0,
     y: 0,
@@ -23,6 +24,7 @@ export default window.camera = {
         this.checkPos();
 
         globals.renderer.needRender = true;
+        globals.fxRenderer.needRender = true;
     },
 
     moveTo(movx, movy){
@@ -48,6 +50,7 @@ export default window.camera = {
         this.checkZoom();
 
         globals.renderer.needRender = true;
+        globals.fxRenderer.needRender = true;
     },
 
     checkZoom(){

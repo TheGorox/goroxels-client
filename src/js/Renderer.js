@@ -1,10 +1,14 @@
 import ChunkPlaceholder from '../img/chunkPlaceholder.png';
 import camera from './camera';
-import { chunkSize, hexPalette } from './config';
+import { chunkSize } from './config';
 import globals from './globals';
 import Pattern from './Pattern';
-import player from './player';
-import { boardToScreenSpace, getVisibleChunks, halfMap, mod, insanelyLongMobileBrowserCheck } from './utils';
+import { getVisibleChunks } from './utils/camera';
+import {
+    halfMap,
+    insanelyLongMobileBrowserCheck
+} from './utils/misc';
+import template from './template';
 
 const isMobile = insanelyLongMobileBrowserCheck();
 
@@ -90,8 +94,6 @@ export default class Renderer {
 
         this.ctx.restore();
 
-        this.ctx.save();
-
-        this.ctx.restore();
+        template.render()
     }
 }

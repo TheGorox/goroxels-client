@@ -4,26 +4,23 @@ import Socket from './Socket';
 import globals from './globals';
 import ChunkManager from './ChunkManager';
 import Renderer from './Renderer';
-import {
-    FXRenderer
-} from './fxcanvas';
+import { FXRenderer } from './fxcanvas';
 import player from './player';
-import ToolManager from './ToolManager'
-import {
-    isDarkColor,
-    calculateColumnSize
-} from './utils'
+import ToolManager from './ToolManager';
+import { isDarkColor } from './utils/color';
+import { calculateColumnSize } from './utils/misc';
 
+import { palette } from './config';
 import {
-    palette
-} from './config'
-import {
-    updateMe
-} from './actions'
-import {init as initTranslate} from './translate'
-//import { import } from '../../../goroxels-server/src/db';
+    updateMe,
+    initInputs,
+    initOtherCoolFeatures
+} from './actions';
+import { init as initTranslate } from './translate';
 
-const {elements} = globals;
+const {
+    elements
+} = globals;
 
 window.onresize = () => {
     elements.mainCanvas.width = window.innerWidth;
@@ -43,13 +40,21 @@ window.onresize = () => {
     calculateColumnSize();
 }
 
+window.oncontextmenu = function(e){
+    e.preventDefault();
+}
+
 palette.forEach((color, id) => {
     const el = document.createElement('div');
     el.style.backgroundColor = `rgb(${color.join(',')})`;
     el.classList = ['paletteColor ' + (isDarkColor(...color) ? 'dark' : 'light')];
+    el.id = 'col' + id;
 
     el.onclick = () => {
-        player.color = id;
+        player.switchColor(id);
+    }
+    el.oncontextmenu = () => {
+        player.switchSecondColor(id);
     }
 
     elements.palette.appendChild(el);
@@ -70,7 +75,7 @@ globals.renderer = renderer;
 const fxRenderer = new FXRenderer();
 globals.fxRenderer = fxRenderer;
 
-new ToolManager(document.getElementById('board'));
+globals.toolManager = new ToolManager(document.getElementById('board'));
 
 const renderLoop = () => {
     requestAnimationFrame(() => {
@@ -82,14 +87,17 @@ renderLoop();
 
 window.onresize();
 
-socket.on('opened', () => {
-});
+socket.on('opened', () => {});
 
 socket.on('online', count => {
-    elements.online.innerText = count;
+    $('.online').text(count);
 });
 
 window.globals = globals;
 
 updateMe();
 initTranslate();
+initInputs();
+initOtherCoolFeatures();
+
+window.player = player;

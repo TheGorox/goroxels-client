@@ -1,16 +1,12 @@
 import globals from './globals';
 import Chunk from './Chunk';
 import {
-    chunkSize,
     argbPalette,
-    argbToId,
-    hexPalette
+    argbToId
 } from './config';
 import {
-    boardToChunk,
-    boardToScreenSpace
-} from './utils'
-import camera from './camera'
+    boardToChunk
+} from './utils/conversions'
 
 export default class ChunkManager {
     constructor() {

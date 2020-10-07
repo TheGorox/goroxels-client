@@ -1,4 +1,4 @@
-class Bucket{
+export default class Bucket{
     constructor(delay, max){
         this._allowance = 0;
 
@@ -34,5 +34,3 @@ class Bucket{
         return true
     }
 }
-
-module.exports = Bucket
