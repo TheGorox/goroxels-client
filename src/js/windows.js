@@ -8,19 +8,27 @@ import toastr from 'toastr';
 import tools from './tools';
 import globals from './globals';
 import {
-    keys
+    keys, ROLE
 } from './constants';
 import {
     decodeKey
 } from './utils/misc';
+import {
+    showProtected
+} from './actions';
+import { ROLE_I } from './constants'
+import player from './player';
 
-function generateTable(arr=[]) {
+export function generateTable(arr = []) {
     const table = $('<table class="columnTable"></table>');
     arr.forEach(([title, content]) => {
         let tableBlock = $(`
                 <tr>
-                    <td>${title}</td>
-                    <td>${content}</td>
+                    ${content === void 0 ?
+                `<td colspan="2">${title}</td>` :
+                `<td>${title}</td>
+                        <td>${content}</td>`
+            }
                 </tr>`);
         table.append(tableBlock)
     });
@@ -28,7 +36,7 @@ function generateTable(arr=[]) {
     return table
 }
 
-function getKeyAsString(keyCode){
+function getKeyAsString(keyCode) {
     return keys[keyCode] || String.fromCharCode(keyCode)
 }
 
@@ -40,14 +48,13 @@ export function accountSettings() {
     if (!settingsWin.created) return;
 
     let html = generateTable([
-        [tr('role'), me.role.toUpperCase()],
+        [tr('role'), ROLE_I[me.role].toUpperCase()],
         [
             tr('change_name'),
             `<input type="text" id="name" style="width:50%"><button id="changeName">yes</button>`
         ],
         [
-            tr('delete_account'),
-            `<button id="changeName">yes</button>`
+            `<button id="deleteAccount">${tr('delete_account')}</button>`
         ],
     ]);
 
@@ -100,7 +107,7 @@ export function keyBinds() {
     let table = generateTable();
 
     for (const tool of Object.values(tools)) {
-        if(!tool.key) continue;
+        if (!tool.key) continue;
 
         const tableRow = $(
             `<tr>
@@ -156,7 +163,7 @@ export function keyBinds() {
             let toSave = {};
 
             for (const tool of Object.values(tools)) {
-                if(!tool.key) continue;
+                if (!tool.key) continue;
 
                 toSave[tool.name] = tool.key;
             }
@@ -165,7 +172,7 @@ export function keyBinds() {
         });
 
         const parsed = decodeKey(tool.key);
-        
+
         modsElement.text((parsed.alt ? 'ALT + ' : '') + (parsed.ctrl ? 'CTRL + ' : ''));
 
         input.val(getKeyAsString(parsed.keyCode));
@@ -174,12 +181,12 @@ export function keyBinds() {
     $(keysWin.body).append(table);
 }
 
-export function uiSettings(){
+export function uiSettings() {
     const setWin = new Window({
         title: translate('UI Settings'),
         center: true
     });
-    if(!setWin.created) return;
+    if (!setWin.created) return;
 
     const table = generateTable([
         [translate('colors size'), '<input type="range" id="colSize">'],
@@ -191,4 +198,61 @@ export function uiSettings(){
     })
 
     $(setWin.body).append(table);
+}
+
+export function gameSettings() {
+    const win = new Window({
+        title: translate('Game Settings'),
+        center: true
+    });
+    if (!win.created) return;
+
+    const table = generateTable([
+        [
+            translate('show protected'),
+            `<input type="checkbox" id="showProtected" ${globals.showProtected ? 'checked' : ''}>`
+        ],
+        [
+            translate('brush size'),
+            `<input type="checkbox" id="customBrushSize" ${player.brushSize > 1 ? 'checked' : ''}>
+            <input id="brushSize" type="range" value="${player.brushSize}" ` +
+            `${player.brushSize == 1 ? 'disabled' : ''} min="2" ` +
+            `max="${me.role === ROLE.ADMIN ? 20 : 8}" step="2">` +
+            `<span id="brushSizeCounter">${player.brushSize}<span>`
+        ],
+    ]);
+
+    $(win.body).append(table);
+
+    $('#showProtected').on('change', e => {
+        const show = e.target.checked;
+        globals.showProtected = show;
+        showProtected(show);
+    });
+
+    $('#customBrushSize').on('change', e => {
+        const use = e.target.checked;
+
+        if (use) {
+            // TODO thing below does not work
+            $('#brushSize').removeAttr('disabled');
+            updateBrush($('#brushSize').val());
+        } else {
+            $('#brushSize').attr('disabled');
+            updateBrush(1);
+        }
+    });
+
+    $('#brushSize').on('input', e => {
+        updateBrush(e.target.value);
+    })
+
+    function updateBrush(size) {
+        player.brushSize = +size;
+        globals.fxRenderer.needRender = true;
+
+        globals.renderer.preRenderBrush();
+
+        $('#brushSizeCounter').text(size);
+    }
 }
