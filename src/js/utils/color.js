@@ -14,3 +14,13 @@ export function isDarkColor(r, g, b) {
     // V value from HSV
     return Math.max(r / 255, g / 255, b / 255) < 0.5
 }
+
+export function applyColor(origColor, tintColor) {
+    var alpha = tintColor[3] / 255;
+
+    return [
+        Math.round((1 - alpha) * origColor[0] + alpha * tintColor[0]),
+        Math.round((1 - alpha) * origColor[1] + alpha * tintColor[1]),
+        Math.round((1 - alpha) * origColor[2] + alpha * tintColor[2])
+    ];
+}
