@@ -6,7 +6,7 @@ export default window.player = {
     x: 0,
     y: 0,
     color: Math.random() * palette.length | 0,
-    brushSize: 4,
+    brushSize: 1,
     secondCol: -1,
     switchColor(id){
         this.color = id;
