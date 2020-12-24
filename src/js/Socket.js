@@ -35,6 +35,8 @@ export default class Socket extends EventEmitter {
         const host = location.hostname || 'localhost';
         this.url = `${scheme}://${host}:${port}`;
 
+        this.pendingPixels = {};
+
         this.connect();
     }
 
@@ -92,13 +94,14 @@ export default class Socket extends EventEmitter {
             case STRING_OPCODES.userJoin: {
                 const {
                     nick: name,
+                    userId,
                     id,
                     registered
                 } = decoded;
 
                 if (globals.users[id]) globals.users[id].destroy();
 
-                globals.users[id] = new User(name, id, registered);
+                globals.users[id] = new User(name, id, userId, registered);
 
                 break
             }
@@ -136,6 +139,12 @@ export default class Socket extends EventEmitter {
 
                 break
             }
+
+            case STRING_OPCODES.alert: {
+                // todo :)))
+                console.log(decoded.msg);
+                break
+            }
         }
     }
 
@@ -156,11 +165,19 @@ export default class Socket extends EventEmitter {
 
             case OPCODES.place: {
                 const [x, y, col] = unpackPixel(dv.getUint32(1));
+
                 const id = dv.getUint32(5);
 
-                // todo replace it somewhere
+                // TODO move it somewhere
                 const user = globals.users[id];
                 if(user) user.updateCoords(col, x, y);
+
+                const key = x + ',' + y;
+                let timeout = this.pendingPixels[key];
+                if(timeout){
+                    clearTimeout(timeout);
+                    delete this.pendingPixels[key];
+                }
 
                 this.emit('place', x, y, col, id);
 
@@ -171,6 +188,26 @@ export default class Socket extends EventEmitter {
                 const count = dv.getUint16(1);
 
                 this.emit('online', count);
+                break
+            }
+
+            case OPCODES.pixels: {
+                const isProtect = !!dv.getUint8(1),
+                    uid = dv.getUint32(2, false);
+                for(let i = 6; i < dv.byteLength; i+=4){
+                    const [x, y, col] = unpackPixel(dv.getUint32(i));
+                    if(isProtect){
+                        this.emit('protect', x, y, col);
+                    }else{
+                        this.emit('place', x, y, col, uid);
+                    }
+
+                    if(i == dv.byteLength-4){
+                        const user = globals.users[uid];
+                        if(user) user.updateCoords(col, x, y);
+                    }
+                }
+                break
             }
         }
     }
@@ -185,20 +222,28 @@ export default class Socket extends EventEmitter {
     }
 
     sendPixel(x, y, c) {
-        // if (c < 0) return;
-        // let oldC = globals.chunkManager.getChunkPixel(x, y);
-        // if (oldC === c || c === -1) return;
-        // if (x < 0 || x >= boardWidth ||
-        //     y < 0 || y >= boardHeight) {
-        //     return
-        // }
-
         let dv = new DataView(new ArrayBuffer(1 + 4))
 
         dv.setUint8(0, OPCODES.place);
         dv.setUint32(1, packPixel(x | 0, y | 0, c));
 
         this.socket.send(dv.buffer);
+    }
+
+    sendPixels(pixels, isProtect=false) {
+        let dv = new DataView(new ArrayBuffer(6 + pixels.length*4))
+
+        dv.setUint8(0, OPCODES.pixels);
+        dv.setUint8(1, isProtect ? 1 : 0); // isProtect
+        for(let i = 0; i < pixels.length; i++){
+            let offset = i*4 + 6;
+            const [x, y, col] = pixels[i];
+
+            const pixel = packPixel(x, y, col);
+            dv.setUint32(offset, pixel);
+        }
+
+        this.socket.send(dv.buffer)
     }
 
     sendCanvas(id) {
@@ -214,6 +259,16 @@ export default class Socket extends EventEmitter {
             c: STRING_OPCODES.chatMessage,
             msg: text,
             ch: channel
+        }
+
+        this.socket.send(JSON.stringify(packet));
+    }
+
+    sendAlert(to, text){
+        const packet = {
+            c: STRING_OPCODES.alert,
+            to,
+            msg: text
         }
 
         this.socket.send(JSON.stringify(packet));
