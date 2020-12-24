@@ -4,12 +4,11 @@
   "description": "",
   "main": "src/js/main.js",
   "scripts": {
-    "devBuild": "..\\goroxels-server\\utils\\copyConfig.bat && webpack",
+    "devBuild": "node ../goroxels-server/utils/copyConfig.js && webpack",
     "build": "webpack",
-    "devRelease": "..\\goroxels-server\\utils\\copyConfig.bat && webpack --env.release",
+    "devRelease": "node ../goroxels-server/utils/copyConfig.js && webpack --env.release",
     "release": "webpack --env.release"
   },
-  "private": true,
   "repository": {
     "type": "git",
     "url": "git+https://github.com/TheGorox/goroxels.git"
@@ -28,6 +27,7 @@
     "file-loader": "^5.0.2",
     "html-webpack-plugin": "^3.2.0",
     "html-webpack-template": "^6.2.0",
+    "mini-css-extract-plugin": "^1.3.3",
     "webpack": "^4.41.4",
     "webpack-cli": "^3.3.10",
     "webpack-obfuscator": "^1.2.2"
