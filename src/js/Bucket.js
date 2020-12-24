@@ -9,6 +9,8 @@ export default class Bucket{
     }
 
     get allowance () {
+        if(this.delay === 0) return Infinity;
+        
         this._allowance += (Date.now() - this.lastCheck) / this.delay;
 
         this.lastCheck = Date.now();
