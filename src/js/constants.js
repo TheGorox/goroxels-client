@@ -61,3 +61,14 @@ export const keys = { // others are ok with charCodeAt
     221: "]",
     222: "'"
 }
+
+export const ROLE = {
+    BANNED: -1,
+    USER: 0,
+    TRUSTED: 1,
+    MOD: 2,
+    ADMIN: 3
+}
+
+export const ROLE_I = {};
+Object.keys(ROLE).forEach(x => ROLE_I[ROLE[x]] = x);
