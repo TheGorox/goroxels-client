@@ -1,7 +1,7 @@
 import globals from './globals';
 import Chunk from './Chunk';
 import {
-    argbPalette,
+    bgrPalette,
     argbToId
 } from './config';
 import {
@@ -33,6 +33,12 @@ export default class ChunkManager {
             // globals.mainCtx.fillStyle = hexPalette[col];
             // globals.mainCtx.fillRect(clientX, clientY, camera.zoom, camera.zoom);
 
+            globals.renderer.needRender = true;
+        })
+
+        globals.socket.on('protect', (x, y, state) => {
+            this.setProtect(x, y, state);
+            
             globals.renderer.needRender = true;
         })
     }
@@ -69,7 +75,8 @@ export default class ChunkManager {
     getChunkPixel(x, y) {
         let [cx, cy, offx, offy] = boardToChunk(x, y);
         let chunk = this.getChunk(cx, cy);
-        if (!chunk) return -1
+
+        if (!chunk || x < 0 || y < 0) return -1
 
         let argb = chunk.get(offx, offy);
 
@@ -81,7 +88,24 @@ export default class ChunkManager {
 
         let key = this.getChunkKey(cx, cy);
         if (this.chunks.has(key)) {
-            this.chunks.get(key).set(offx, offy, argbPalette[col])
+            this.chunks.get(key).set(offx, offy, bgrPalette[col])
         }
+    }
+
+    setProtect(x, y, state){
+        let [cx, cy, offx, offy] = boardToChunk(x, y);
+
+        let key = this.getChunkKey(cx, cy);
+        if (this.chunks.has(key)) {
+            this.chunks.get(key).setProtect(offx, offy, state)
+        }
+    }
+
+    getProtect(x, y){
+        let [cx, cy, offx, offy] = boardToChunk(x, y);
+        let chunk = this.getChunk(cx, cy);
+        if (!chunk) return -1
+
+        return chunk.getProtect(offx, offy);
     }
 }

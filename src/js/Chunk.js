@@ -1,12 +1,15 @@
 import {
     chunkSize,
-    argbPalette
+    bgrPalette
 } from './config'
 
 export default class Chunk{
     constructor(x, y, buffer){
         this.x = x;
         this.y = y;
+
+        this.width = chunkSize;
+        this.height = chunkSize;
 
         this.canvas = document.createElement('canvas');
         this.canvas.width = this.canvas.height = chunkSize;
@@ -16,7 +19,16 @@ export default class Chunk{
         this.imgData = this.ctx.createImageData(chunkSize, chunkSize);
         this.view = new Uint32Array(this.imgData.data.buffer);
 
+        // protected
+        this.pCanvas = document.createElement('canvas');
+        this.pCanvas.width = this.pCanvas.height = chunkSize;
+
+        this.pCtx = this.pCanvas.getContext('2d');
+        this.pImgData = this.pCtx.createImageData(chunkSize, chunkSize);
+        this.pView = new Uint32Array(this.pImgData.data.buffer);
+
         this.needRender = true;
+        this.showProtected = false;
 
         this.fromBuffer(buffer);
     }
@@ -25,12 +37,26 @@ export default class Chunk{
         if(this.needRender){
             this.needRender = false;
             this.ctx.putImageData(this.imgData, 0, 0);
+
+            if(this.showProtected){
+                this.ctx.globalAlpha = 0.5;
+
+                this.pCtx.putImageData(this.pImgData,0,0);
+                this.ctx.drawImage(this.pCanvas, 0, 0);
+
+                this.ctx.globalAlpha = 1;
+            }
         }
     }
 
     fromBuffer(buf){
+        let col, isProtected;
         for(let i = 0; i < buf.byteLength; i++){
-            this.view[i] = argbPalette[buf[i]]
+            col = buf[i];
+            isProtected = col & 0x80;
+
+            isProtected && (this.pView[i] = 0xFFFF0000);
+            this.view[i] = bgrPalette[col & 0x7F];
         }
     }
 
@@ -38,8 +64,23 @@ export default class Chunk{
         return this.view[x + y * chunkSize]
     }
 
-    set(x, y, argb){
-        this.view[x + y * chunkSize] = argb;
+    set(x, y, c){
+        const i = x + y * chunkSize
+
+        this.view[i] = c;
+
         this.needRender = true;
+    }
+
+    setProtect(x, y, state){
+        const i = x + y * chunkSize;
+        this.pView[i] = state ? 0xFFFF0000 : 0;
+
+        this.needRender = true;
+    }
+
+    getProtect(x, y){
+        const i = x + y * chunkSize;
+        return !!this.pView[i];
     }
 }
