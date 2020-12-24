@@ -1,15 +1,17 @@
 export const OPCODES = {
-    chunk: 0x0,
-    place: 0x1,
-    online: 0x2,
-    canvas: 0x3
+    chunk:   0x0,
+    place:   0x1,
+    online:  0x2,
+    canvas:  0x3,
+    pixels:  0x4
 }
 
 export const STRING_OPCODES = {
     error: 'e',
     userJoin: 'u',
     userLeave: 'l',
-    chatMessage: 'c'
+    chatMessage: 'c',
+    alert: 'a'
 }
 
 export function packPixel(x, y, col) {
