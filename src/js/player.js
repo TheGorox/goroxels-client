@@ -6,10 +6,12 @@ export default window.player = {
     x: 0,
     y: 0,
     color: Math.random() * palette.length | 0,
+    brushSize: 4,
     secondCol: -1,
     switchColor(id){
         this.color = id;
         globals.fxRenderer.needRender = true;
+        globals.renderer.preRender();
 
         $('.paletteColor.selected').removeClass('selected');
         if(id !== -1){
@@ -24,6 +26,7 @@ export default window.player = {
     switchSecondColor(id){
         this.secondCol = id;
         globals.fxRenderer.needRender = true;
+        globals.renderer.preRender();
 
         $('.paletteColor.selectedSecond').removeClass('selectedSecond');
         if(id !== -1){
@@ -47,3 +50,5 @@ export default window.player = {
     placed: [],
     maxPlaced: 500
 }
+
+window.player = player
