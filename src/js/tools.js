@@ -40,6 +40,10 @@ function getPixel(x, y) {
     return globals.chunkManager.getChunkPixel(x, y)
 }
 
+function getProtect(x, y) {
+    return globals.chunkManager.getProtect(x, y)
+}
+
 function isOdd(x, y) {
     return ((x + y) % 2) === 0
 }
@@ -68,6 +72,10 @@ function renderFX() {
     globals.fxRenderer.needRender = true;
 }
 
+function protectPixel(x, y){
+    globals.socket.sendProtect([[x, y, 1]]);
+}
+
 class Clicker extends Tool {
     constructor(...args) {
         super(...args);
@@ -86,7 +94,7 @@ class Clicker extends Tool {
 
         this.fx = new FX(this.render.bind(this));
         // костыль
-        setTimeout(() => globals.fxRenderer.add(this.fx));
+        // setTimeout(() => globals.fxRenderer.add(this.fx));
     }
 
     down() {
@@ -111,19 +119,50 @@ class Clicker extends Tool {
         this.lastPos = [x, y];
 
         for (let [x, y] of pixels) {
-            const key = `${x},${y}`;
-            const color = getColByCord(x, y);
+            if(player.brushSize === 1){
+                const key = `${x},${y}`;
+                const color = getColByCord(x, y);
 
-            if (getPixel(x, y) === color) continue;
+                if (getPixel(x, y) === color) continue;
 
-            if (!player.bucket.spend(1)) {
-                break
+                if (!player.bucket.spend(1)) {
+                    return
+                }
+    
+                if (this._pendingPixels[key] && this._pendingPixels[key][0] === color) continue;
+                this._pendingPixels[key] = [color, Date.now()];
+    
+                placePixel(x, y, color)
+            }else{
+                let circle = globals.renderer.preRendered.brush.circle,
+                    pixels = [];
+
+                if (player.bucket.allowance < circle.length) {
+                    return
+                }
+
+                circle.forEach(([cx, cy]) => {
+                    let _x = x + cx;
+                    let _y = y + cy;
+
+                    const key = `${_x},${_y}`;
+                    const color = getColByCord(_x, _y);
+
+                    const pixel = getPixel(_x, _y);
+                    if (pixel === color || pixel === -1) return;
+        
+                    if (this._pendingPixels[key] && this._pendingPixels[key][0] === color) return;
+                    this._pendingPixels[key] = [color, Date.now()];
+        
+                    pixels.push([_x, _y, color]);
+                })
+
+                if(pixels.length === 0) continue;
+
+                player.bucket.spend(pixels.length)
+
+                globals.socket.sendPixels(pixels, false);
             }
-
-            if (this._pendingPixels[key] && this._pendingPixels[key][0] === color) continue;
-            this._pendingPixels[key] = [color, Date.now()];
-
-            placePixel(x, y, color)
         }
     }
 
@@ -168,6 +207,69 @@ class Clicker extends Tool {
 }
 const clicker = new Clicker('clicker', 32, clickerIcon);
 
+class Protector extends Tool {
+    constructor(...args) {
+        super(...args);
+
+        this.on('down', this.down);
+        this.on('up', this.up);
+        this.on('move', this.move);
+        this.on('leave', this.up);
+
+        this._pendingPixels = {};
+
+        setInterval(() => {
+            this.clearPending()
+        }, 1000);
+    }
+
+    down() {
+        if (this.mousedown) return;
+
+        this.mousedown = true;
+        this.lastPos = [player.x, player.y];
+
+        this.emit('move', {});
+    }
+    up() {
+        this.mousedown = false;
+        this.lastPos = null;
+    }
+
+    move(e) {
+        if (!this.mousedown || e.gesture) return;
+
+        let [x, y] = [player.x, player.y];
+
+        let pixels = shapes.line(this.lastPos[0], this.lastPos[1], x, y);
+        this.lastPos = [x, y];
+
+        for (let [x, y] of pixels) {
+            const key = `${x},${y}`;
+
+            if (this._pendingPixels[key] || getProtect(x, y)) continue;
+            this._pendingPixels[key] = Date.now();
+
+            protectPixel(x, y);
+        }
+    }
+
+    clearPending() {
+        let deletedSome = false;
+        Object.keys(this._pendingPixels).forEach(key => {
+            let timestamp = this._pendingPixels[key];
+
+            if (Date.now() - timestamp > 2000) {
+                delete this._pendingPixels[key];
+                deletedSome = true;
+            }
+        })
+
+        return deletedSome;
+    }
+}
+const protector = new Protector('protector', 'V'.charCodeAt(), clickerIcon);
+
 class Mover extends Tool {
     constructor(...args) {
         super(...args);
@@ -195,16 +297,21 @@ class Mover extends Tool {
         const color = getCurCol();
 
         if (color && zoom > 1) {
-            ctx.strokeStyle = hexPalette[color];
+            if(player.brushSize == 1){
+                const [x, y] = boardToScreenSpace(player.x, player.y);
+                ctx.strokeStyle = hexPalette[color];
             //ctx.fillStyle = hexPalette[player.color];
             ctx.lineWidth = zoom / 5;
 
-            const [x, y] = boardToScreenSpace(player.x, player.y);
 
             //ctx.fillRect(x, y, zoom, zoom);
             ctx.strokeRect(x, y, zoom, zoom);
 
             //renderFX();
+            }else{
+                const [x, y] = boardToScreenSpace(player.x-player.brushSize/2, player.y-player.brushSize/2);
+                ctx.drawImage(globals.renderer.preRendered.brush.canvas, x, y)
+            }
         }
 
         return 1
@@ -427,7 +534,7 @@ class FloodFill extends Tool {
         if (!this.active) return;
 
         // TODO
-        for (let i = 0; i < 8 && this.stack.length; i++) {
+        for (let i = 0; i < 15 && this.stack.length; i++) {
             if (!player.bucket.spend(1)) break;
 
             let [x, y] = this.stack.pop();
@@ -736,5 +843,6 @@ export default {
     chatOpac,
     menuOpac,
     allOpac,
-    ctrlZ
+    ctrlZ,
+    protector
 }
