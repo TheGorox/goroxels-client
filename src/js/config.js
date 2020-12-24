@@ -1,7 +1,8 @@
 import sharedConf from '../../shared/config.json'
 import {
     rgb2abgr,
-    rgb2hex
+    rgb2hex,
+    applyColor
 } from './utils/color'
 
 const path = document.location.pathname.replace(/[^\d^\w]/g, '');
@@ -19,11 +20,12 @@ export const
     maxZoom = 64;
 
 export const
-    argbPalette = new Uint32Array(palette.map((rgb) => rgb2abgr(...rgb))),
+    // palette for fast rendering
+    bgrPalette = new Uint32Array(palette.map((rgb) => rgb2abgr(...rgb))),
     hexPalette = palette.map(rgb2hex),
     boardChunkWid = canvasConf.boardWidth,
     boardChunkHei = canvasConf.boardHeight,
     cooldown = canvasConf.cooldown;
 
 export const argbToId = {};
-Array.from(argbPalette.values()).forEach((argb, i) => argbToId[argb] = i)
+Array.from(bgrPalette.values()).forEach((argb, i) => argbToId[argb] = i)
