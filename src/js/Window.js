@@ -66,6 +66,7 @@ export default class Window {
 
         this.parent = document.body;
 
+        // не ставьте на false, пока что нет способа закрыть не двигая
         this.moveable = true;
         this.closeable = true;
         this.closed = false;
@@ -74,6 +75,7 @@ export default class Window {
 
         Object.assign(this, config);
 
+        // TODO remove this?
         if (windows.includes(this.title)) {
             this.closed = true;
             return
