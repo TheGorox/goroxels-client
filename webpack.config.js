@@ -3,8 +3,9 @@ const path = require('path');
 const webpack = require('webpack');
 
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const JavaScriptObfuscator = require('webpack-obfuscator');
+// const JavaScriptObfuscator = require('webpack-obfuscator');
 const CircularDependencyPlugin = require('circular-dependency-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 /*const ExtractTextPlugin = require('extract-text-webpack-plugin');*/
 
@@ -12,7 +13,7 @@ const srcDir = path.resolve(__dirname, 'src');
 
 const config = {
     entry: {
-        ass: path.resolve(srcDir, 'js/main.js'),
+        not_a_bundle: path.resolve(srcDir, 'js/main.js'),
         converters: path.resolve(srcDir, 'js/convert/main.js')
     },
     output: {
@@ -49,16 +50,22 @@ const config = {
                 }
             }]
         }, {
-            include: path.resolve(srcDir, 'css'),
-            use: ['style-loader', 'css-loader'],
+            test: /\.css/,
+            use: [MiniCssExtractPlugin.loader, {
+                loader: 'css-loader',
+                options: {
+                    modules: false,
+                }
+            }],
         }]
     },
     plugins: [
+        new MiniCssExtractPlugin(),
         new HtmlWebpackPlugin({
             filename: 'index.html',
             template: path.resolve(srcDir, 'html/index.html'),
             favicon: path.resolve(srcDir, 'favicon.ico'),
-            chunks: ['ass']
+            chunks: ['not_a_bundle']
         }),
         new HtmlWebpackPlugin({
             filename: 'convert.html',
@@ -66,7 +73,7 @@ const config = {
             favicon: path.resolve(srcDir, 'favicon.ico'),
             chunks: ['converters']
         }),
-        new CircularDependencyPlugin(),
+        new CircularDependencyPlugin(), // optional
         new webpack.ProvidePlugin({
             '$': 'jquery',
             'toastr': 'toastr'
@@ -81,7 +88,7 @@ module.exports = async env => {
 
     if (!env.release) {
         config.mode = "development";
-        //config.devtool = "source-map";
+        config.devtool = "source-map";
     } else {
         config.mode = "production";
         config.output.filename = '[name].[hash].js';
