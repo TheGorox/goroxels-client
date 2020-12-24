@@ -18,8 +18,8 @@ export default window.camera = {
     maxY: boardHeight/2,
 
     centerOn(x, y){
-        this.x = x;
-        this.y = y;
+        this.x = x - this.maxX;
+        this.y = y - this.maxY;
 
         this.checkPos();
 
@@ -51,6 +51,8 @@ export default window.camera = {
 
         globals.renderer.needRender = true;
         globals.fxRenderer.needRender = true;
+
+        globals.renderer.preRender();
     },
 
     checkZoom(){
