@@ -1,3 +1,128 @@
+.columnHeader {
+        display: flex;
+
+        justify-content: center;
+        /* vertical-align: middle; */
+
+        text-transform: uppercase;
+
+        height: 43px;
+        line-height: 43px;
+        /* костыль */
+        border-bottom: 3px solid var(--primary);
+        font-size: 25px;
+}
+.columnContent {
+        overflow-y: auto;
+        overflow-x: hidden;
+        min-height: 45px;
+        height: 127px;
+        border-bottom: 3px solid var(--primary);
+        background-color: var(--dark);
+}
+
+#chatLog {
+    width: 240px;
+    height: 265px;
+
+    word-wrap: break-word;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    border-width: 2px;
+    border-style: inset;
+
+    font-family: sans-serif;
+    font-size: 15px;
+
+    user-select: text;
+    -moz-user-select: text;
+    -webkit-user-select: text;
+}
+
+.close {
+    width: 25px;
+    height: 25px;
+    z-index: 2;
+}
+
+#chat {
+    position: absolute;
+    width: max-content;
+    bottom: .1rem;
+    left: 1rem;
+    z-index: 2;
+    padding: 3px;
+}
+
+#topMenu{
+    overflow-y: auto;
+    position: fixed;
+    max-height: 100%;
+}
+
+@media screen and (max-width: 650px) {
+    .content {
+        width: 100vw;
+        display: flex;
+        position: relative;
+        justify-content: center;
+        flex-direction: column;
+        align-items: center;
+    }
+    #topMenu{
+        max-height: 30vh;
+    }
+    .column{
+        width: 100vw;
+    }
+    #chat {
+        bottom: 0px;
+        left: 0px;
+        padding: 0px;
+        width: 100vw;
+        height: 100vh;
+        z-index: 23;
+    }
+    #chatLog {
+        width: 100%;
+        height: 100%;
+
+        word-wrap: break-word;
+
+        overflow-y: auto;
+        overflow-x: hidden;
+
+        border-width: 2px;
+        border-style: inset;
+
+        font-family: sans-serif;
+        font-size: 15px;
+    }
+}
+@media screen and (min-width: 651px) {
+    .header {
+        width: 100%;
+        height: 30px;
+        line-height: 30px;
+
+        font-size: x-large;
+        text-shadow: 2px 2px 0 #000;
+
+        background-color: #4C4C4C;
+
+        display: flex;
+        justify-content: center;
+    }
+    .content {
+        width: 100%;
+        display: flex;
+        position: relative;
+    }
+}
+
+
 * {
     padding: 0;
     margin: 0;
@@ -21,17 +146,45 @@ html {
 
 body {
     border: none;
+
     user-select: none;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+
     background: gray;
 }
 
 #ui {
     user-select: none;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    pointer-events: none;
 
     color: white;
 
-    font-family: Roboto, sans-serif;
-    font-weight: bold;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+
+    cursor: default;
+    display: flex;
+    flex-direction: column;
+    
+    z-index: 5;
+}
+#ui>div>*{
+    pointer-events: all;
+}
+
+#uiTop{
+    height: 100%;
+    position: relative;
+}
+
+#uiBottom{
+    width: 100%;
 }
 
 .bubble {
@@ -58,6 +211,21 @@ body {
     bottom: 5px;
 
     z-index: 2;
+}
+
+.fd {
+    font-size: 1vw;
+    font-size: min(12px);
+}
+
+.hd {
+    font-size: 2vw;
+    font-size: min(16px);
+}
+
+#adapte {
+    font-size: 1vw;
+    font-size: min(12px);
 }
 
 #settings,
@@ -88,8 +256,6 @@ body {
 
     padding-top: 7px;
     padding-bottom: 7px;
-
-    position: absolute;
 
     text-align: center;
 
@@ -173,35 +339,6 @@ a:visited,
 #chat {
     transition: all .3s cubic-bezier(1, -.45, .99, .75);
 }
-@media (orientation: portrait){
-    #chat {
-        display: none;
-    }
-
-    #topMenu {
-        display: none;
-    }
-}
-
-.header {
-    width: 100%;
-    height: 30px;
-    line-height: 30px;
-
-    font-size: x-large;
-    text-shadow: 2px 2px 0 #000;
-
-    background-color: #4C4C4C;
-
-    display: flex;
-    justify-content: space-between;
-}
-
-.content {
-    width: 100%;
-    display: flex;
-    position: relative;
-}
 
 /*
     Костыль
@@ -211,20 +348,6 @@ a:visited,
     border-right: 3px solid #4C4C4C;
 }
 
-.columnHeader {
-    display: flex;
-
-    justify-content: center;
-    /* vertical-align: middle; */
-
-    text-transform: uppercase;
-
-    height: 43px;
-    line-height: 43px;
-    /* костыль */
-    border-bottom: 3px solid var(--primary);
-    font-size: 25px;
-}
 
 .columnHeader>.shadow {
     color: var(--bg-text);
@@ -240,16 +363,10 @@ a:visited,
     bottom: 0;
     height: 3px;
     cursor: row-resize;
-    user-select: none;
-}
 
-.columnContent {
-    overflow-y: auto;
-    overflow-x: hidden;
-    min-height: 45px;
-    height: 127px;
-    border-bottom: 3px solid var(--primary);
-    background-color: var(--dark);
+    user-select: none;
+    -moz-user-select: none;
+    -webkit-user-select: none;
 }
 
 .columnTable {
@@ -407,7 +524,6 @@ input[type=range]::-moz-range-thumb {
     position: absolute;
     padding: 10px;
     background-color: #404040;
-    border-radius: 10px;
     border-width: 2px;
     border-style: outset;
     z-index: 6;
@@ -433,15 +549,17 @@ input[type=range]::-moz-range-thumb {
     align-items: center;
     justify-content: center;
     overflow-y: -webkit-paged-x;
+
+    margin-bottom: 5px;
+
     user-select: none;
+    -moz-user-select: none;
+    -webkit-user-select: none;
 }
 
-#chat {
-    bottom: 48px;
-    left: 16px;
-
-    z-index: 2;
-    padding: 3px;
+#emotions {
+    width: 100%;
+    height: 100%;
 }
 
 #chat,
@@ -449,21 +567,6 @@ input[type=range]::-moz-range-thumb {
     transition: all .3s cubic-bezier(1, -.45, .99, .75);
 }
 
-#chatLog {
-    width: 240px;
-    height: 265px;
-
-    word-wrap: break-word;
-
-    overflow-y: auto;
-    overflow-x: hidden;
-
-    border-width: 2px;
-    border-style: inset;
-
-    font-family: sans-serif;
-    font-size: 15px;
-}
 
 #chatHeader {
     height: 50px;
@@ -519,4 +622,47 @@ input[type=range]::-moz-range-thumb {
 
 .messageText {
     font-weight: normal;
+}
+
+#modMenu{
+    margin: 0;
+    transform: translate(0, -50%);
+    position: absolute;
+    top: 50%;
+    right: 0;
+
+    transition: right ease-in-out .2s;
+}
+
+#modMenu>div{
+    position: relative;
+}
+
+#modMenu .body{
+    position: absolute;
+    left: 30px;
+
+    margin: 0;
+    transform: translate(0, -50%);
+    position: absolute;
+    top: 50%;
+
+    background-color: #333;
+}
+
+#modMenu .title{
+    width: 30px;
+
+    background-color: #333;
+    display: flex;
+    height: 4rem;
+
+    border-radius: 5px 0 0 5px;
+
+    cursor: pointer;
+}
+
+#modMenu .title div{
+    transform: rotate(-90deg);
+    align-self: center;
 }

@@ -152,3 +152,14 @@ input[type=range]::-moz-range-thumb {
     margin-top: -7px;
     line-height: 36px;
 }
+
+.inputLabel{
+    border: 1px solid white;
+    border-radius: 4px;
+
+    padding-top: 2px;
+    text-align: center;
+
+    background-color: white;
+    color: black;
+}
