@@ -1,7 +1,9 @@
 import me from './me';
 import {
     cooldown,
-    canvasId
+    canvasId,
+    argbToId,
+    chunkSize
 } from './config';
 import player from './player';
 import {
@@ -13,9 +15,6 @@ import {
 } from './utils/conversions'
 import template from './template'
 import globals from './globals';
-import {
-    visible as checkCoords
-} from './utils/camera';
 import {
     chatInput,
     chat,
@@ -29,8 +28,10 @@ import {
 import {
     accountSettings,
     keyBinds,
-    uiSettings
+    uiSettings,
+    gameSettings
 } from './windows'
+import { ROLE, ROLE_I } from './constants'
 
 async function fetchMe() {
     const response = await fetch('/api/me', {
@@ -59,7 +60,7 @@ export async function updateMe() {
 
 export function getMyCooldown() {
     const cooldowns = cooldown;
-    return cooldowns[me.role] || [0, 32];
+    return cooldowns[ROLE_I[me.role]] || [0, 32];
 }
 
 export function initInputs() {
@@ -107,6 +108,7 @@ function initHandlers() {
 
 export function initOtherCoolFeatures() {
     initTemplateMoveByMouse();
+    initModMenu();
 }
 
 function initTemplateMoveByMouse() {
@@ -160,6 +162,7 @@ function initButtons() {
     $('#accountSettings').on('click', accountSettings);
     $('#toolBinds').on('click', keyBinds);
     $('#uiSettings').on('click', uiSettings);
+    $('#canvasSettings').on('click', gameSettings);
 }
 
 function initChat(){
@@ -177,9 +180,10 @@ function initChat(){
 
 
 export function placePixel(x, y, col, store=true) {
-    if (checkCoords(x, y) &&
-        globals.chunkManager.getChunkPixel(x, y) !== col &&
-        globals.socket.connected) {
+    const oldCol = globals.chunkManager.getChunkPixel(x, y),
+        isProtected = globals.chunkManager.getProtect(x, y);
+
+    if (oldCol !== col && (!isProtected || me.role === ROLE.ADMIN) && globals.socket.connected) {
             if(store){
                 player.placed.push([x, y, globals.chunkManager.getChunkPixel(x, y)]);
 
@@ -192,6 +196,18 @@ export function placePixel(x, y, col, store=true) {
             globals.socket.sendPixel(x, y, col);
             globals.renderer.needRender = true;
             globals.fxRenderer.needRender = true;
+
+            globals.socket.pendingPixels[x + ',' + y] = setTimeout(() => {
+                globals.chunkManager.setChunkPixel(x, y, oldCol);
+                globals.renderer.needRender = true;
+            }, 3000)
+    }else{
+        if(isProtected){
+            toastr.error('This pixel is protected.', 'Ouch!', {
+                preventDuplicates: true,
+                timeOut: 5000
+            })
+        }
     }
 }
 
@@ -217,4 +233,40 @@ export function toggleTopMenu(){
 
 export function toggleEverything(){
     ui.toggle();
+}
+
+export function showProtected(show=true){
+    globals.chunkManager.chunks.forEach(chunk => {
+        chunk.showProtected = show;
+        chunk.needRender = true;
+    });
+    globals.renderer.needRender = true;
+}
+
+function initModMenu(){
+    initSliding();
+    initSendAlerts();
+
+    function initSliding(){
+        $('#modMenu .title').on('click', e => {
+            const m = $('#modMenu');
+            if(m.data('state') === 'open'){
+                m.data('state', 'close');
+                m.css('right', 0);
+            }else{
+                m.data('state', 'open');
+                m.css('right', $('#modMenu .body').css('width'));
+            }
+        })
+    }
+
+    function initSendAlerts(){
+        $('#sendAlerts').on('click', () => {
+            const val = $('#sendAlertsText').val();
+            if(val.length == 0 || val.length > 2000) return;
+
+            $('#sendAlertsText').val('');
+            globals.socket.sendAlert('all', val);
+        })
+    }
 }
