@@ -19,7 +19,7 @@ import {
 import { init as initTranslate } from './translate';
 
 const {
-    elements
+    elements,
 } = globals;
 
 window.onresize = () => {
@@ -37,10 +37,12 @@ window.onresize = () => {
 
     renderer.needRender = true;
 
-    calculateColumnSize();
+    if (!globals.mobile) {
+        calculateColumnSize();
+    }
 }
 
-window.oncontextmenu = function(e){
+window.oncontextmenu = function (e) {
     e.preventDefault();
 }
 
@@ -87,7 +89,7 @@ renderLoop();
 
 window.onresize();
 
-socket.on('opened', () => {});
+socket.on('opened', () => { });
 
 socket.on('online', count => {
     $('.online').text(count);
