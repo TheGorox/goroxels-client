@@ -43,7 +43,7 @@ let utils = {
     }
 }
 
-const select = $('#paletteSel');
+const paletteSel = $('#paletteSel');
 
 Object.keys(palettes).forEach(key => {
     const newEl = $(`<option>${key}</option>`);
@@ -51,12 +51,12 @@ Object.keys(palettes).forEach(key => {
 
     if (key === 'game.main') newEl.attr('selected', '');
 
-    select.prepend(newEl);
+    paletteSel.prepend(newEl);
 });
-select.append('<option value="_custom">custom</option>');
+paletteSel.append('<option value="_custom">custom</option>');
 
-select.on('change', () => {
-    const val = select.val();
+paletteSel.on('change', () => {
+    const val = paletteSel.val();
 
     if (val === "_custom") {
         $('#userPalette').show();
@@ -646,9 +646,31 @@ function startPaletteConverter(url) {
 }
 
 palUtils.updatePalette();
-$('#palThresold').on('change', palUtils.ditherPalette.bind(palUtils));
-$('#colorAdj').on('input', converterPreload);
-$('#brightAdj').on('input', converterPreload);
+
+$('#palThresold').on('change', () => {
+    palUtils.ditherPalette();
+    converterPreload();
+});
+$('#colorAdj').on('input', (e) => {
+    $('#colorAdjLabel').text(e.target.value);
+});
+$('#resetContrast').click(() => {
+    $('#colorAdj').val(0);
+    $('#colorAdjLabel').text(0);
+});
+
+$('#brightAdj').on('input', (e) => {
+    $('#brightAdjLabel').text(e.target.value);
+});
+$('#resetBrightness').click(() => {
+    $('#brightAdj').val(0);
+    $('#brightAdjLabel').text(0);
+});
+document.onkeydown = e => {
+    if(e.code === 'Enter' && !e.repeat){
+        converterPreload();
+    }
+}
 
 // -----------------------------------------------
 // -----------------------------------------------
