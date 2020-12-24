@@ -30,5 +30,30 @@ export default {
         if (reverseFlag) pointArr.reverse();
 
         return pointArr;
+    },
+
+    filledCircle: function (centerX, centerY, r) {
+        let pixels = [];
+
+        const squareR = r*r;
+
+        for (let _x = -r + centerX; _x < r + centerX; _x++) {
+            for (let _y = -r + centerY; _y < r + centerY; _y++) {
+                if(isIn(_x, _y)){
+                    pixels.push([_x, _y])
+                }
+            }
+        }
+
+        function isIn(_x, _y) {
+            let dx = _x - centerX,
+                dy = _y - centerY;
+
+            if (dx*dx + dy*dy <= squareR*0.8)
+                return true
+            return false
+        }
+
+        return pixels
     }
 }
