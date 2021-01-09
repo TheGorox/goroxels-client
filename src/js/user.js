@@ -46,6 +46,15 @@ export default class User {
             const req = await fetch('/api/userInfo?id=' + this.userId, {
             });
             const info = await req.json();
+
+            if(info.role !== undefined && me.role === ROLE.ADMIN && me.id !== info.id){
+                const role = info.role;
+                let str = '';
+                Object.keys(ROLE).forEach(text => {
+                    str += `<option ${(text === role) ? 'selected' : ''}>${text}</option>`
+                })
+                info.role = `<select type="role">${str}<select>`
+            }
             
             // TODO: set values in specific order
             let infoArr = Object.keys(info).map(key => [key, info[key]]), misc = [];
@@ -65,6 +74,29 @@ export default class User {
 
                 $('.alertInput', win.body).val('');
                 globals.socket.sendAlert(this.id, val);
+            });
+
+            $('select[type=role]', win.body).on('change', async e => {
+                const role = e.target.value,
+                    userId = this.id;
+                const resp = await fetch('/api/admin/changerole', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        id: userId,
+                        role
+                    }),
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const body = await resp.json();
+                if(!body.success){
+                    body.errors.forEach(error => {
+                        toastr.error(error, 'ERROR');
+                    })
+                }else{
+                    toastr.success('Changed role to ' + role);
+                }
             })
         });
 
