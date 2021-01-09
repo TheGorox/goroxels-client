@@ -137,7 +137,12 @@ export default class ToolManager extends EventEmitter {
                 this.tools.mover.emit('down', e)
             });
             em.on('mouseup', e => {
-                this.tools.mover.emit('up', e)
+                if(e.button === 2){
+                    player.switchColor(-1);
+                    player.switchSecondColor(-1);
+                    globals.fxRenderer.needRender = true;
+                }
+                this.tools.mover.emit('up', e);
             });
             em.on('mousemove', e => {
                 if (e.buttons === 0) {
@@ -145,6 +150,7 @@ export default class ToolManager extends EventEmitter {
                 }
 
                 this.tool != tools.mover && this.tools.mover.emit('move', e);
+
                 this.tool.emit('move', e)
             });
 
