@@ -1,3 +1,15 @@
+/* Убираем спиннеры, которые мешают нормально центрировать текст */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type=number] {
+    -moz-appearance:textfield;
+    text-align: center;
+}
+
 .columnHeader {
         display: flex;
 
@@ -443,8 +455,7 @@ button {
     border-radius: 10px;
 }
 
-input[type=text],
-input[type=number] {
+input[type=text] {
     padding-left: 3px;
 }
 
@@ -614,8 +625,7 @@ input[type=range]::-moz-range-thumb {
 
 .messageNick,
 .messageText,
-.chatColored,
-.chatColoredHidden {
+.chatColored {
     display: inline;
     word-break: break-word;
 }
