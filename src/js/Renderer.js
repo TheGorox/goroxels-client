@@ -70,7 +70,7 @@ export default class Renderer {
         })
         
         ctx.beginPath();
-        ctx.lineWidth = zoom / 5;
+        ctx.lineWidth = zoom / 4;
         ctx.strokeStyle = hexPalette[player.color];
         ctx.lineCap = 'square';
 

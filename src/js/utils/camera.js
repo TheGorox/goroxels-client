@@ -43,7 +43,7 @@ export function getVisibleChunks() {
     return arr
 }
 
-export function visible(x, y){
-    if(x < 0 || x > boardWidth || y < 0 || y > boardHeight) return false;
+export function inBounds(x, y){
+    if(x < 0 || x >= boardWidth || y < 0 || y >= boardHeight) return false;
     return true;
 }

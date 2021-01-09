@@ -3,7 +3,7 @@ import globals from './globals'
 
 import shapes from './utils/shapes';
 import {
-    visible
+    inBounds
 } from './utils/camera';
 import {
     boardToScreenSpace,
@@ -15,6 +15,8 @@ import {
     FX
 } from './fxcanvas'
 import {
+    boardHeight,
+    boardWidth,
     hexPalette
 } from './config'
 import camera from './camera'
@@ -27,12 +29,14 @@ import {
     toggleTopMenu,
     toggleEverything
 } from './actions'
+import { ROLE } from './constants';
 
 import clickerIcon from '../img/toolIcons/clicker.png'
 import moveIcon from '../img/toolIcons/move.png'
 import floodfillIcon from '../img/toolIcons/floodfill.png'
 import pipetteIcon from '../img/toolIcons/pipette.png'
 import template from './template';
+import me from './me';
 
 const mobile = globals.mobile;
 
@@ -72,8 +76,8 @@ function renderFX() {
     globals.fxRenderer.needRender = true;
 }
 
-function protectPixel(x, y){
-    globals.socket.sendProtect([[x, y, 1]]);
+function protectPixels(pixels) {
+    globals.socket.sendPixels(pixels, true);
 }
 
 class Clicker extends Tool {
@@ -118,22 +122,27 @@ class Clicker extends Tool {
         let pixels = shapes.line(this.lastPos[0], this.lastPos[1], x, y);
         this.lastPos = [x, y];
 
-        for (let [x, y] of pixels) {
-            if(player.brushSize === 1){
+        for (let [x, y] of pixels) { // TODO reduce code size here
+            if (player.brushSize === 1) {
                 const key = `${x},${y}`;
                 const color = getColByCord(x, y);
 
                 if (getPixel(x, y) === color) continue;
 
+                const pixel = getPixel(x, y),
+                isProtected = getProtect(x, y);
+                if (pixel === color || pixel === -1 || (isProtected && me.role < ROLE.MOD)) continue;
+
+                if (this._pendingPixels[key] && this._pendingPixels[key][0] === color) continue;
+
                 if (!player.bucket.spend(1)) {
                     return
                 }
-    
-                if (this._pendingPixels[key] && this._pendingPixels[key][0] === color) continue;
+
                 this._pendingPixels[key] = [color, Date.now()];
-    
+
                 placePixel(x, y, color)
-            }else{
+            } else {
                 let circle = globals.renderer.preRendered.brush.circle,
                     pixels = [];
 
@@ -146,18 +155,19 @@ class Clicker extends Tool {
                     let _y = y + cy;
 
                     const key = `${_x},${_y}`;
-                    const color = getColByCord(_x, _y);
+                    const myColor = getColByCord(_x, _y);
 
-                    const pixel = getPixel(_x, _y);
-                    if (pixel === color || pixel === -1) return;
-        
-                    if (this._pendingPixels[key] && this._pendingPixels[key][0] === color) return;
-                    this._pendingPixels[key] = [color, Date.now()];
-        
-                    pixels.push([_x, _y, color]);
+                    const pixel = getPixel(_x, _y),
+                        isProtected = getProtect(_x, _y);
+                    if (pixel === myColor || pixel === -1 || (isProtected && me.role < ROLE.MOD)) return;
+
+                    if (this._pendingPixels[key] && this._pendingPixels[key][0] === myColor) return;
+                    this._pendingPixels[key] = [myColor, Date.now()];
+
+                    pixels.push([_x, _y, myColor]);
                 })
 
-                if(pixels.length === 0) continue;
+                if (pixels.length === 0) continue;
 
                 player.bucket.spend(pixels.length)
 
@@ -239,18 +249,52 @@ class Protector extends Tool {
     move(e) {
         if (!this.mousedown || e.gesture) return;
 
+        const protect = e.__alt ? 0 : 1;
+
         let [x, y] = [player.x, player.y];
 
         let pixels = shapes.line(this.lastPos[0], this.lastPos[1], x, y);
         this.lastPos = [x, y];
 
         for (let [x, y] of pixels) {
-            const key = `${x},${y}`;
+            if (player.brushSize == 1) {
+                if(!inBounds(x, y)) continue;
 
-            if (this._pendingPixels[key] || getProtect(x, y)) continue;
-            this._pendingPixels[key] = Date.now();
+                const key = `${x},${y}`;
 
-            protectPixel(x, y);
+                if (this._pendingPixels[key]) continue;
+                this._pendingPixels[key] = Date.now();
+
+                protectPixels([[x, y, protect]]);
+            } else {
+                let circle = globals.renderer.preRendered.brush.circle,
+                    pixels = [];
+
+                if (player.bucket.allowance < circle.length) {
+                    return
+                }
+
+                circle.forEach(([cx, cy]) => {
+                    let _x = x + cx;
+                    let _y = y + cy;
+
+                    if(!inBounds(_x, _y)) return;
+
+                    const key = `${_x},${_y}`;
+
+                    const isProtected = getProtect(_x, _y);
+                    if ((isProtected && protect) || (!isProtected && !protect)) return;
+
+                    if (this._pendingPixels[key]) return;
+                    this._pendingPixels[key] = Date.now();
+
+                    pixels.push([_x, _y, protect]);
+                })
+
+                if (pixels.length === 0) continue;
+
+                protectPixels(pixels);
+            }
         }
     }
 
@@ -269,6 +313,23 @@ class Protector extends Tool {
     }
 }
 const protector = new Protector('protector', 'V'.charCodeAt(), clickerIcon);
+
+const altProtector = new Protector('alt protector', 'ALT+' + 'V'.charCodeAt(), clickerIcon);
+altProtector.off('down', altProtector.down);
+altProtector.on('down', (e) => {
+    e.__alt = true;
+    altProtector.down.call(altProtector, e)
+});
+altProtector.off('up', altProtector.up);
+altProtector.on('up', (e) => {
+    e.__alt = true;
+    altProtector.up.call(altProtector, e)
+});
+altProtector.off('move', altProtector.move);
+altProtector.on('move', (e) => {
+    e.__alt = true;
+    altProtector.move.call(altProtector, e)
+});
 
 class Mover extends Tool {
     constructor(...args) {
@@ -296,20 +357,20 @@ class Mover extends Tool {
 
         const color = getCurCol();
 
-        if (color && zoom > 1) {
-            if(player.brushSize == 1){
+        if (~color && zoom > 1) {
+            if (player.brushSize == 1) {
                 const [x, y] = boardToScreenSpace(player.x, player.y);
                 ctx.strokeStyle = hexPalette[color];
-            //ctx.fillStyle = hexPalette[player.color];
-            ctx.lineWidth = zoom / 5;
+                //ctx.fillStyle = hexPalette[player.color];
+                ctx.lineWidth = zoom / 5;
 
 
-            //ctx.fillRect(x, y, zoom, zoom);
-            ctx.strokeRect(x, y, zoom, zoom);
+                //ctx.fillRect(x, y, zoom, zoom);
+                ctx.strokeRect(x, y, zoom, zoom);
 
-            //renderFX();
-            }else{
-                const [x, y] = boardToScreenSpace(player.x-player.brushSize/2, player.y-player.brushSize/2);
+                //renderFX();
+            } else {
+                const [x, y] = boardToScreenSpace(player.x - player.brushSize / 2, player.y - player.brushSize / 2);
                 ctx.drawImage(globals.renderer.preRendered.brush.canvas, x, y)
             }
         }
@@ -400,7 +461,7 @@ class FloodFill extends Tool {
         }
 
         const cord = screenToBoardSpace(e.clientX, e.clientY);
-        if (player.color === -1 || !visible(...cord) || e.type === 'mouseleave') {
+        if (player.color === -1 || !inBounds(...cord) || e.type === 'mouseleave') {
             return
         }
 
@@ -422,7 +483,7 @@ class FloodFill extends Tool {
         }
 
         const cord = screenToBoardSpace(e.clientX, e.clientY);
-        if (player.color === -1 || !visible(...cord)) {
+        if (player.color === -1 || !inBounds(...cord)) {
             return
         }
         let _lastX, _lastY;
@@ -463,7 +524,7 @@ class FloodFill extends Tool {
             let tileCol = getPixel(x, y);
             let painted = this.showedPixels.indexOf(x + ',' + y) !== -1;
 
-            if (painted || tileCol === color || tileCol !== this.fillingCol || !visible(x, y)) {
+            if (painted || tileCol === color || tileCol !== this.fillingCol || !inBounds(x, y)) {
                 return 0
             }
 
@@ -542,7 +603,7 @@ class FloodFill extends Tool {
             let color = getColByCord(x, y, this.playerCol, this.secondPlayerCol);
             let tileCol = getPixel(x, y);
 
-            if (tileCol === color || tileCol !== this.fillingCol || !visible(x, y)) {
+            if (tileCol === color || tileCol !== this.fillingCol || !inBounds(x, y)) {
                 continue
             }
 
@@ -722,12 +783,12 @@ class Line extends Tool {
         this.on('up', up);
     }
 }
-const line = new Line('line', 16 /*Shift*/ , floodfillIcon);
+const line = new Line('line', 16 /*Shift*/, floodfillIcon);
 
 const cordAdd = new Tool('coords to chat', 'U'.charCodeAt());
 cordAdd.on('up', function () {
     chatInput[0].value += this.elements.coords.text() + ' ';
-    chatInput.focus();
+    chatInput.trigger('focus');
 });
 
 const pixelInfo = new Tool('pixel info', 'I'.charCodeAt());
@@ -746,7 +807,7 @@ const colorDec = new Tool('left color', 'A'.charCodeAt());
 colorDec.on('down', function () {
     let color = player.color;
     if (--color < 0) color = hexPalette.length - 1;
-    
+
     player.switchColor(color);
 });
 
@@ -754,7 +815,7 @@ const colorInc = new Tool('right color', 'S'.charCodeAt());
 colorInc.on('down', function () {
     let color = player.color;
     if (++color >= hexPalette.length) color = 0;
-    
+
     player.switchColor(color);
 });
 
@@ -768,7 +829,7 @@ menuOpac.on('down', function () {
     toggleTopMenu();
 });
 
-const allOpac = new Tool('0/1 all except board', 186 /* ; */ );
+const allOpac = new Tool('0/1 all except board', 186 /* ; */);
 allOpac.on('down', function () {
     toggleEverything();
 });
@@ -844,5 +905,6 @@ export default {
     menuOpac,
     allOpac,
     ctrlZ,
-    protector
+    protector,
+    altProtector
 }
