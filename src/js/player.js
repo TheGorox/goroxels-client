@@ -48,7 +48,7 @@ export default window.player = {
         this.bucket = new Bucket(delay, max);
     },
     placed: [],
-    maxPlaced: 500
+    maxPlaced: isNaN(+localStorage['game.maxPlaced']) ? 500 : +localStorage['game.maxPlaced']
 }
 
 window.player = player

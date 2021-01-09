@@ -217,9 +217,13 @@ export function gameSettings() {
             `<input type="checkbox" id="customBrushSize" ${player.brushSize > 1 ? 'checked' : ''}>
             <input id="brushSize" type="range" value="${player.brushSize}" ` +
             `${player.brushSize == 1 ? 'disabled' : ''} min="2" ` +
-            `max="${me.role === ROLE.ADMIN ? 20 : 8}" step="2">` +
+            `max="${me.role === ROLE.ADMIN ? 20 : 10}" step="2">` +
             `<span id="brushSizeCounter">${player.brushSize}<span>`
         ],
+        [
+            translate('max saved pixels'),
+            `<input id="savePixelsInp" type="number" min="0" value="${player.maxPlaced}" style="width:4rem">`
+        ]
     ]);
 
     $(win.body).append(table);
@@ -255,4 +259,13 @@ export function gameSettings() {
 
         $('#brushSizeCounter').text(size);
     }
+
+    $('#savePixelsInp').on('change', e => {
+        e = e.target;
+        if(+e.value < 0) e.value = 0;
+
+        player.maxPlaced = +e.value;
+        localStorage.setItem('game.maxPlaced', player.maxPlaced)
+    })
+
 }
