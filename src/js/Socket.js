@@ -17,15 +17,7 @@ import {
     updateMe
 } from './actions'
 import User from './user';
-
-function htmlspecialchars(text){
-    return text
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
+import chat from './chat';
 
 export default class Socket extends EventEmitter {
     constructor(port) {
@@ -121,28 +113,17 @@ export default class Socket extends EventEmitter {
             }
 
             case STRING_OPCODES.chatMessage: {
-                const msg = decoded.msg,
-                    nick = decoded.nick,
-                    isServer = decoded.server;
-
-                const msgEl = $(
-                `<div class="chatMessage">
-                    <div class="messageNick">${nick}:</div>
-                    <div class="messageText">${isServer ? msg : htmlspecialchars(msg)}</div>
-                </div>`)
-
-                if(!nick.length) msgEl[0].children[0].remove();
-
-                $('#chatLog').append(msgEl);
-
-                $('#chatLog')[0].scrollBy(0, 999);
+                chat.addMessage(decoded)
 
                 break
             }
 
             case STRING_OPCODES.alert: {
                 // todo :)))
-                console.log(decoded.msg);
+                toastr.info(decoded.msg, 'ALERT', {
+                    timeOut: 1000*60*5,
+                    extendedTimeOut: 1000*60*5
+                })
                 break
             }
         }

@@ -17,7 +17,7 @@ import template from './template'
 import globals from './globals';
 import {
     chatInput,
-    chat,
+    chat as chatEl,
     ui,
     topMenu,
     urlInput,
@@ -32,6 +32,7 @@ import {
     gameSettings
 } from './windows'
 import { ROLE, ROLE_I } from './constants'
+import chat from './chat';
 
 async function fetchMe() {
     const response = await fetch('/api/me', {
@@ -167,14 +168,14 @@ function initButtons() {
 
 function initChat(){
     chatInput.on('keydown', e => {
-        if(e.keyCode !== 13) return;
+        if(e.code !== 'Enter') return;
 
         const message = chatInput.val();
         if(!message.length) return;
 
         chatInput.val('');
 
-        globals.socket.sendChatMessage(message, canvasId);
+        chat.handleMessage(message);
     })
 }
 
@@ -212,12 +213,12 @@ export function placePixel(x, y, col, store=true) {
 }
 
 export function toggleChat(){
-    if (chat.css('display') === 'none') {
-        chat.show();
-        chat.css('left', '');
+    if (chatEl.css('display') === 'none') {
+        chatEl.show();
+        chatEl.css('left', '');
     } else {
-        chat.css('left', -chat.width() - 30);
-        setTimeout(() => chat.hide(), 500);
+        chatEl.css('left', -chatEl.width() - 30);
+        setTimeout(() => chatEl.hide(), 500);
     }
 }
 
