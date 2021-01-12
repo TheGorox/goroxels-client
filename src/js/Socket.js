@@ -13,9 +13,6 @@ import {
     canvasId
 } from './config'
 import globals from './globals'
-import {
-    updateMe
-} from './actions'
 import User from './user';
 import chat from './chat';
 
@@ -45,8 +42,6 @@ export default class Socket extends EventEmitter {
 
             this.emit('opened');
             console.log('Socket has been connected');
-
-            updateMe();
         }
 
         this.socket.onmessage = this.onmessage.bind(this);

@@ -1,23 +1,23 @@
-import Window from './Window';
+import {
+    ROLE,
+    keys
+} from './constants';
 import {
     translate as tr,
     translate
 } from './translate';
+
+import { ROLE_I } from './constants'
+import Window from './Window';
+import { decodeKey } from './utils/misc';
+import { game } from './config'
+import globals from './globals';
 import me from './me';
+import player from './player'
+import { showProtected } from './actions';
 import toastr from 'toastr';
 import tools from './tools';
-import globals from './globals';
-import {
-    keys, ROLE
-} from './constants';
-import {
-    decodeKey
-} from './utils/misc';
-import {
-    showProtected
-} from './actions';
-import { ROLE_I } from './constants'
-import player from './player';
+import chat from './chat';
 
 export function generateTable(arr = []) {
     const table = $('<table class="columnTable"></table>');
@@ -210,7 +210,7 @@ export function gameSettings() {
     const table = generateTable([
         [
             translate('show protected'),
-            `<input type="checkbox" id="showProtected" ${globals.showProtected ? 'checked' : ''}>`
+            `<input type="checkbox" id="showProtected" ${game.showProtected ? 'checked' : ''}>`
         ],
         [
             translate('brush size'),
@@ -223,6 +223,14 @@ export function gameSettings() {
         [
             translate('max saved pixels'),
             `<input id="savePixelsInp" type="number" min="0" value="${player.maxPlaced}" style="width:4rem">`
+        ],
+        [
+            translate('disable chat colors'),
+            `<input type="checkbox" id="disableChatColors" ${game.disableColors ? 'checked' : ''}>`
+        ],
+        [
+            translate('chat messages limit'),
+            `<input type="number" id="chatLimit" value="${game.chatLimit}" title="maximum messages in chat">`
         ]
     ]);
 
@@ -230,7 +238,7 @@ export function gameSettings() {
 
     $('#showProtected').on('change', e => {
         const show = e.target.checked;
-        globals.showProtected = show;
+        game.showProtected = show;
         showProtected(show);
     });
 
@@ -265,7 +273,24 @@ export function gameSettings() {
         if(+e.value < 0) e.value = 0;
 
         player.maxPlaced = +e.value;
-        localStorage.setItem('game.maxPlaced', player.maxPlaced)
+        localStorage.setItem('maxPlaced', player.maxPlaced)
+    });
+
+    $('#disableChatColors').on('change', e => {
+        const checked = e.target.checked
+
+        game.disableColors = checked;
+        localStorage.setItem('disableColors', checked.toString());
+
+        chat.setColors(checked)
     })
 
+    $('#chatLimit').on('change', e => {
+        const value = parseInt(e.target.value, 10);
+        if(isNaN(value) || value < 1) return;
+
+        localStorage.setItem('chatLimit', value.toString());
+
+        game.chatLimit = value;
+    })
 }

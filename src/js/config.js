@@ -4,6 +4,7 @@ import {
     rgb2hex,
     applyColor
 } from './utils/color'
+import { getOrDefault } from './utils/localStorage'
 
 const path = document.location.pathname.replace(/[^\d^\w]/g, '');
 let index = sharedConf.canvases.findIndex(canvas => canvas.name === path);
@@ -26,6 +27,11 @@ export const
     boardChunkWid = canvasConf.boardWidth,
     boardChunkHei = canvasConf.boardHeight,
     cooldown = canvasConf.cooldown;
+
+export const game = {
+    disableColors: JSON.parse(getOrDefault('disableColors', false)),
+    chatLimit: parseInt(getOrDefault('chatLimit', 100), 10)
+}
 
 export const argbToId = {};
 Array.from(bgrPalette.values()).forEach((argb, i) => argbToId[argb] = i)

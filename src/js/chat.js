@@ -1,4 +1,4 @@
-import { canvasId } from './config';
+import { canvasId, game } from './config';
 import globals from './globals';
 import cssColors from './utils/cssColorsList'
 
@@ -34,6 +34,10 @@ class Chat {
         this.colorsEnabled = state;
 
         $('chatColored').toggleClass('noColor', state);
+    }
+
+    setShowColors(){
+
     }
 
     parseColors(str) {
@@ -100,7 +104,7 @@ class Chat {
 
         this.element.append(msgEl);
 
-        this.element[0].scrollBy(0, 999);
+        this.afterAddingMessage();
     }
 
     addLocalMessage(text) {
@@ -113,11 +117,18 @@ class Chat {
 
         this.element.append(msgEl);
 
-        this.element[0].scrollBy(0, 999);
+        this.afterAddingMessage();
     }
 
     addServerMessage(text) {
         this.addLocalMessage(text)
+    }
+
+    afterAddingMessage(){
+        if(this.element.children().length > game.chatLimit){
+            this.element.children()[0].remove();
+        }
+        this.element[0].scrollBy(0, 999);
     }
 
     // handles messages to send
@@ -182,4 +193,4 @@ class Chat {
     }
 }
 
-export default new Chat();
+export default globals.chat = new Chat();
