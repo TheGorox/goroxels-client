@@ -86,7 +86,7 @@ export function accountSettings() {
             }
         }).then(async r => {
             const result = await r.json();
-            if (result.success) {
+            if (!result.errors) {
                 toastr.success('Name successfully changed')
             } else {
                 result.errors.map(e => {

@@ -33,7 +33,6 @@ export default class User {
                 <td></td>
             </tr>`);
 
-        // TODO redo
         this.nameEl = $('.name', this.element);
         this.coordsEl = $(this.element.children()[1]);
 
@@ -90,7 +89,7 @@ export default class User {
                     }
                 });
                 const body = await resp.json();
-                if(!body.success){
+                if(body.errors){
                     body.errors.forEach(error => {
                         toastr.error(error, 'ERROR');
                     })

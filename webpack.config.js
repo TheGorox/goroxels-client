@@ -14,7 +14,8 @@ const srcDir = path.resolve(__dirname, 'src');
 const config = {
     entry: {
         not_a_bundle: path.resolve(srcDir, 'js/main.js'),
-        converters: path.resolve(srcDir, 'js/convert/main.js')
+        converters: path.resolve(srcDir, 'js/convert/main.js'),
+        admin: path.resolve(srcDir, 'js/admin/main.js')
     },
     output: {
         filename: '[name].bundle.js',
@@ -72,6 +73,12 @@ const config = {
             template: path.resolve(srcDir, 'html/convert.html'),
             favicon: path.resolve(srcDir, 'favicon.ico'),
             chunks: ['converters']
+        }),
+        new HtmlWebpackPlugin({
+            filename: 'admin.html',
+            template: path.resolve(srcDir, 'html/admin.html'),
+            favicon: path.resolve(srcDir, 'favicon.ico'),
+            chunks: ['admin']
         }),
         new CircularDependencyPlugin(), // optional
         new webpack.ProvidePlugin({
