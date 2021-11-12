@@ -49,8 +49,12 @@ export default class Renderer {
     }
 
     preRenderBrush(){
+        // TODO make it render only before brush used
+        // because it renders on every zoom
         const size = player.brushSize,
             zoom = camera.zoom;
+        
+        if(zoom < 1) return
 
         const canvas = document.createElement('canvas');
         canvas.width = canvas.height = zoom*(size+1);
@@ -159,9 +163,15 @@ export default class Renderer {
 
         let zoom = camera.zoom;
 
+        if(zoom === 1){
+            // for Firefox, to render normally at least on zoom 1
+            camX = Math.floor(camX)
+            camY = Math.floor(camY)
+        }
+
         this.ctx.save();
         this.ctx.scale(zoom, zoom);
-        this.ctx.translate(-camX, -camY)
+        this.ctx.translate(-camX, -camY);
 
         visibleChunks.forEach(chunkCord => {
             let [cx, cy] = chunkCord;
@@ -179,7 +189,7 @@ export default class Renderer {
                 return
             }
             
-            let chunk = globals.chunkManager.getChunk(cx, cy);
+            const chunk = globals.chunkManager.getChunk(cx, cy);
 
             chunk.render();
             this.ctx.drawImage(chunk.ctx.canvas, offX, offY);

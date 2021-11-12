@@ -3,7 +3,10 @@ import '../../css/converters.css';
 import '../../img/folder.png';
 import '../../img/pattern.png';
 import '../../img/palette.png';
-import palettes from './palettes';
+import '../../img/palette2.png';
+import palettes, { loadGamePalettes } from './palettes';
+
+import './setImmediate';
 
 const clrManip = require('./color');
 const bayer = require('./bayerMatrices');
@@ -11,6 +14,11 @@ const importedPatterns = require('./patterns');
 
 import imgZoom from './imgzoom';
 import openImage from './openImage';
+
+import { upload } from './imgur';
+
+import { init, translate as t } from '../translate'
+init();
 
 // автоматический корректор инпута
 $('input[type=number]').on('change', (e) => {
@@ -44,16 +52,18 @@ let utils = {
 }
 
 const paletteSel = $('#paletteSel');
+function applyPalettes(selected='pixelplanet'){
+    Object.keys(palettes).forEach(key => {
+        const newEl = $(`<option id="p_${key}">${key}</option>`);
+        newEl.val(key);
 
-Object.keys(palettes).forEach(key => {
-    const newEl = $(`<option>${key}</option>`);
-    newEl.val(key);
-
-    if (key === 'game.main') newEl.attr('selected', '');
-
-    paletteSel.prepend(newEl);
-});
-paletteSel.append('<option value="_custom">custom</option>');
+        if(key === selected)
+            newEl.attr('selected', '');
+    
+        paletteSel.prepend(newEl);
+    });
+    paletteSel.append('<option value="_custom">custom</option>');
+}
 
 paletteSel.on('change', () => {
     const val = paletteSel.val();
@@ -84,16 +94,16 @@ $('#userPalette').on('input', () => {
     visualizePalette();
 });
 
-function visualizePalette(){
+function visualizePalette() {
     const pal = paletteRGB;
 
     $('#palette').children().remove();
-    
+
     pal.forEach(col => {
         const el = $(`<div class="paletteCol" style="background-color:rgb(${col.join(',')})"></div>`);
         $('#palette').append(el);
     });
-}  
+}
 
 
 function tryParseUserPalette() {
@@ -283,7 +293,7 @@ let palUtils = {
                         for (let j = (~dir ? 0 : dithering.length - 1), end = (~dir ? dithering.length : 0); j != end; j += dir) {
                             const p = dithering[j];
 
-                            const [mult, X, Y] = [p[0], x + p[1]*dir, y + p[2]];
+                            const [mult, X, Y] = [p[0], x + p[1] * dir, y + p[2]];
                             if (X < 0 || X >= width || Y < 0 || Y >= height)
                                 continue;
 
@@ -316,7 +326,7 @@ let palUtils = {
     * checkboardDithering(imageData) { // дупликация кода конечно, но мне пофег
         const width = imageData.width;
         let imgData = imageData.data;
-        
+
         let deFunction;
         let palette = this.colorValuesExRGB;
         switch ($('#colorfunc').val()) {
@@ -388,7 +398,7 @@ let palUtils = {
 
         const width = imageData.width;
         let imgData = imageData.data;
-        
+
         let deFunction;
         let palette = paletteRGB;
         switch ($('#colorfunc').val()) {
@@ -457,7 +467,7 @@ let palUtils = {
 
 $('#palFolder').on('click', () => {
     openImage(dataURL => {
-        $('#palInput').val('[буфер обмена]');
+        $('#palInput').val(t('[clipboard]'));
         $('#palInput').data('source', 'dataURL');
 
         palUtils.dataURL = dataURL;
@@ -493,9 +503,9 @@ $('#ditheringMode').on('change', () => {
     }
 
     // serpentine mode is only works for error dithering
-    if(['f-s', 'stuki', 'sierra', 'sierra-lite'].includes(val)){
+    if (['f-s', 'stuki', 'sierra', 'sierra-lite'].includes(val)) {
         $('#serpBlock').removeClass('hidden');
-    }else{
+    } else {
         $('#serpBlock').addClass('hidden');
     }
 });
@@ -515,7 +525,7 @@ $('#palInput').on('paste', (e) => {
 
     const reader = new FileReader();
     reader.onload = function (ev) {
-        $('#palInput').val('[буфер обмена]');
+        $('#palInput').val(t('[clipboard]'));
         $('#palInput').data('source', 'dataURL');
         const tempImage = new Image();
         tempImage.onload = function () {
@@ -536,14 +546,14 @@ function converterPreload(showWarn = true) {
     let path = $('#palInput').val();
     if ($('#palInput').data('source') !== 'dataURL') {
         if (!path.length) {
-            return showWarn && toastr.error('Укажи изображение!');
+            return showWarn && toastr.error(t('Choose a image!'));
         }
 
         if (utils.isURLValid(path)) {
             palUtils.link = path;
             startPaletteConverter(path);
         } else {
-            return showWarn && toastr.error('Ссылка невалидная!');
+            return showWarn && toastr.error(t('Invalid link!'));
         }
     } else {
         startPaletteConverter(palUtils.dataURL);
@@ -551,11 +561,7 @@ function converterPreload(showWarn = true) {
 }
 
 function startPaletteConverter(url) {
-    // иногда вызывает ошибку. наверное потому, что он уже очищен из памяти сборщиком
-    // а может я просто долбоёб. лень разбираться
-    try {
-        clearTimeout(palUtils.converterInterval);
-    } catch {}
+    clearImmediate(palUtils.converterInterval);
 
     let tempImg = new Image();
     tempImg.crossOrigin = 'anonymous';
@@ -573,7 +579,7 @@ function startPaletteConverter(url) {
         try {
             var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         } catch (e) {
-            return toastr.error('Изображение загружено, но не хочет показывать себя. Скорее всего, виноват CORS. Рекомендую скачать эту картинку и повторить попытку через файл. Ну или ты просто дурачок.', 'ОШИБКА ЗАГРУЗКИ ИЗОБРАЖЕНИЯ')
+            return toastr.error(t('Image is loaded, but pixels can not be shown. Try to load it on Imgur or download->upload from file'))
         }
 
         const contrast = +$('#colorAdj').val();
@@ -624,28 +630,32 @@ function startPaletteConverter(url) {
         palUtils.usedColors = [];
 
         let startTime = Date.now();
-        palUtils.converterInterval = setTimeout(function rec() {
+        const progressBar = $('#palLB>.barProgress');
+        progressBar.parent().parent().removeClass('hidden');
+        palUtils.converterInterval = setImmediate(function rec() {
             let loaded = convGen.next();
 
             if (loaded.done) {
-                //ctx.putImageData(loaded.value, 0, 0);
+                progressBar.parent().parent().addClass('hidden');
+                progressBar.css('width', 0);
                 ctx.putImageData(imgData, 0, 0);
                 onDone(canvas, 'palOut',
                     () => {
-                        toastr.info(`Завершено за ${(Date.now() - startTime)/1000}сек.`);
+                        toastr.info(`${t('Done in')} ${(Date.now() - startTime) / 1000} ${s}`);
                     });
             } else {
-                palUtils.converterInterval = setTimeout(rec);
+                let perc = loaded.value*100;
+                if(perc > 97) perc = 100;
+                progressBar.css('width', perc + '%');
+                palUtils.converterInterval = setImmediate(rec);
             }
         });
     }
 
     tempImg.onerror = () => {
-        toastr.error('Предыдущие проверки пройдены, так что скорее всего либо файла нет, либо cors(хотя не должОн)', 'ОШИБКА ЗАГРУЗКИ ИЗОБРАЖЕНИЯ')
+        toastr.error('Unknown image loading error. Maybe CORS, so try to upload on Imgur')
     }
 }
-
-palUtils.updatePalette();
 
 $('#palThresold').on('change', () => {
     palUtils.ditherPalette();
@@ -654,7 +664,7 @@ $('#palThresold').on('change', () => {
 $('#colorAdj').on('input', (e) => {
     $('#colorAdjLabel').text(e.target.value);
 });
-$('#resetContrast').click(() => {
+$('#resetContrast').on('click', () => {
     $('#colorAdj').val(0);
     $('#colorAdjLabel').text(0);
 });
@@ -667,7 +677,7 @@ $('#resetBrightness').click(() => {
     $('#brightAdjLabel').text(0);
 });
 document.onkeydown = e => {
-    if(e.code === 'Enter' && !e.repeat){
+    if (e.key === 'Enter' && !e.repeat) {
         converterPreload();
     }
 }
@@ -681,18 +691,59 @@ document.onkeydown = e => {
 let patUtils = {
     patterns: importedPatterns.patterns,
     defaultPattern: importedPatterns.defaultPattern,
+    patternSize: Math.sqrt(importedPatterns.patterns[0].length),
+
     usedColors: [],
+
+    patternsCans: [], // список картинок с паттернами для ускоренного рисования
+    generatePatterns() {
+        this.patternsCans = [];
+        const patternSize = this.patternSize;
+        let pattern, ctx, color;
+        for (let i = 0; i < paletteRGB.length; i++) {
+            let canvas = document.createElement('canvas');
+            canvas.width = canvas.height = patternSize;
+
+            pattern = this.patterns[i % this.patterns.length];
+            color = paletteRGB[i];
+
+            ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = `rgb(${color.join(',')})`;
+
+            for (let j = 0; j < pattern.length; j++) {
+                if (!pattern[j]) continue;
+
+                const x = j % patternSize,
+                    y = j / patternSize | 0;
+
+                ctx.fillRect(x, y, 1, 1);
+            }
+
+            this.patternsCans.push(canvas);
+        }
+    },
+    drawPattern(ctx, pattern, startX, startY, color){
+        let s = this.patternSize;
+        ctx.fillStyle = `rgb(${color.join(',')})`;
+        for(let x = 0; x < s; x++){
+            for(let y = 0; y < s; y++){
+                if(!pattern[x+y*s]) continue
+                ctx.fillRect(startX+x, startY+y, 1, 1);
+            }
+        }
+    },
     // todo расширяемые паттерны
     * patternize(canvas) {
         const ctx = canvas.getContext('2d');
-        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const {
+            data: imgData,
+            width, height
+        } = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-        const width = imgData.width;
-        const height = imgData.height;
+        this.generatePatterns();
 
-        const imgDataData = imgData.data;
-
-        const patternSize = Math.sqrt(this.patterns[0].length);
+        const patternSize = this.patternSize;
         const patternLength = patternSize ** 2;
 
         const newWidth = width * patternSize;
@@ -704,46 +755,37 @@ let patUtils = {
 
         const ctx2 = newCanvas.getContext('2d');
 
-        for (let i = 0; i < imgDataData.length; i += 4) {
-            let _i = i / 4;
-            const imgX = _i % width;
-            const imgY = _i / width | 0;
+        // actual palette32 includes opacity, i don't need it
+        let palette32 = paletteRGB.map(c => (c[0] << 16) + (c[1] << 8) + c[2])
+        let colorMap = new Map();
+        palette32.forEach((el, i) => colorMap.set(el, i))
 
-            if (imgDataData[i + 3] < 127) continue;
+        let imgX, imgY, absX, absY, color, colId, color32, _i, pattern;
+        for (let i = 0; i < imgData.length; i += 4) {
+            if (imgData[i + 3] < 127) continue;
 
-            const absX = imgX * patternSize;
-            const absY = imgY * patternSize;
+            _i = i / 4;
+            imgX = _i % width;
+            imgY = _i / width | 0;
 
-            const color = [imgDataData[i], imgDataData[i + 1], imgDataData[i + 2], imgDataData[i + 3]];
-            const colorEnc = (color[0] << 16) + (color[1] << 8) + color[2];
-            let colId = -1;
-            const usedIndex = this.usedColors[colorEnc];
-            if (usedIndex !== undefined) {
-                colId = usedIndex;
-            } else {
-                colId = clrManip.getColorIndex(color, paletteRGB);
-                this.usedColors[colorEnc] = colId;
-            }
+            absX = imgX * patternSize;
+            absY = imgY * patternSize;
 
-            const pattern = colId > -1 ? this.patterns[colId % this.patterns.length] : this.defaultPattern;
+            color = [imgData[i], imgData[i + 1], imgData[i + 2], imgData[i + 3]];
+            color32 = (color[0] << 16) + (color[1] << 8) + color[2];
 
-            ctx2.fillStyle = `rgb(${color.join(',')})`;
+            colId = colorMap.get(color32);
 
-            for (let j = 0; j < patternLength; j++) {
-                let bool = pattern[j];
-                if (!bool) continue;
+            pattern = this.patternsCans[colId];
 
-                let _x = j % patternSize;
-                let _y = j / patternSize | 0;
-
-                let _absX = absX + _x;
-                let _absY = absY + _y;
-
-                ctx2.fillRect(_absX, _absY, 1, 1);
+            if (pattern) {
+                ctx2.drawImage(pattern, absX, absY);
+            }else{
+                this.drawPattern(ctx2, this.defaultPattern, absX, absY, color)
             }
 
             if (i % 8000 === 0) {
-                yield i / imgDataData.length
+                yield i / imgData.length
             }
         }
         //newCanvas.getContext('2d').putImageData(newImgData, 0, 0);
@@ -754,7 +796,7 @@ let patUtils = {
 
 $('#patFolder').on('click', () => {
     openImage(dataURL => {
-        $('#patInput').val('[буфер обмена]');
+        $('#patInput').val(t('[clipboard]'));
         $('#patInput').data('source', 'dataURL');
 
         patUtils.dataURL = dataURL;
@@ -789,7 +831,7 @@ $('#patInput').on('paste', (e) => {
 
     const reader = new FileReader();
     reader.onload = function (ev) {
-        $('#patInput').val('[буфер обмена]');
+        $('#patInput').val(t('[clipboard]'));
         $('#patInput').data('source', 'dataURL');
 
         const tempImage = new Image();
@@ -811,14 +853,14 @@ function patternPreload() {
     let path = $('#patInput').val();
     if ($('#patInput').data('source') !== 'dataURL') {
         if (!path.length) {
-            return toastr.error('Укажи изображение!');
+            return toastr.error(t('Choose a image!'));
         }
 
         if (utils.isURLValid(path) && utils.isURLImage(path)) {
             palUtils.link = path;
             patternatorStart(path);
         } else {
-            return toastr.error('Ссылка невалидная!');
+            return toastr.error(t('Invalid link!'));
         }
     } else {
         patternatorStart(patUtils.dataURL);
@@ -826,13 +868,7 @@ function patternPreload() {
 }
 
 function patternatorStart(url) {
-    //clearInterval(palUtils.converterInterval);
-    // иногда вызывает ошибку. наверное потому, что он уже очищен из памяти сборщиком
-    try {
-        clearTimeout(patUtils.converterInterval);
-    } catch (e) {
-        console.log(e);
-    }
+    clearImmediate(patUtils.converterInterval);
 
     let tempImg = new Image();
     tempImg.crossOrigin = 'anonymous';
@@ -844,7 +880,7 @@ function patternatorStart(url) {
         canvas.height = tempImg.height;
 
         if (canvas.width > 800 || canvas.height > 800) {
-            toastr.warning('Изображение больше 800 пикселей стороной, это может крашнуть темплейт.');
+            //toastr.warning('Image is wider than 800px, this can crash the page');
         }
 
         let ctx = canvas.getContext('2d');
@@ -853,34 +889,30 @@ function patternatorStart(url) {
         try {
             ctx.getImageData(0, 0, 1, 1);
         } catch (e) {
-            return toastr.error('Изображение загружено, но не хочет показывать себя. Скорее всего, виноват CORS. Рекомендую скачать эту картинку и повторить попытку через файл.', 'ОШИБКА ЗАГРУЗКИ ИЗОБРАЖЕНИЯ')
+            return toastr.error(t('Image is loaded, but pixels can not be gotten. Try to load it on Imgur or download->upload from file'))
         }
 
-        toastr.warning('Если изображение большое, после конвертации темплейт может зависнуть на время. Наберись терпения.');
+        toastr.warning(t('If your image is big, go make a tea and watch Doctor Who'));
         let convGen = patUtils.patternize(canvas);
 
         let startTime = Date.now();
-        patUtils.converterInterval = setTimeout(function rec() {
+        patUtils.converterInterval = setImmediate(function rec() {
             let loaded = convGen.next();
 
             if (loaded.done) {
                 onDone(loaded.value, 'patOut',
                     () => {
-                        toastr.info(`Завершено за ${(Date.now() - startTime)/1000}сек.`);
+                        toastr.info(`${t('Done in')} ${(Date.now() - startTime) / 1000}s.`);
                     });
             } else {
-                patUtils.converterInterval = setTimeout(rec);
+                patUtils.converterInterval = setImmediate(rec);
             }
         });
     }
 
     tempImg.onerror = () => {
-        toastr.error('Предыдущие проверки пройдены, так что скорее всего либо файла нет, либо cors(хотя не должОн)', 'ОШИБКА ЗАГРУЗКИ ИЗОБРАЖЕНИЯ')
+        toastr.error(t('Unknown image loading error. Maybe CORS, so try to upload on Imgur'))
     }
-}
-
-function imgurUpload(base64, cb) {
-    // todo
 }
 
 function createImgData(width, height) {
@@ -892,7 +924,7 @@ function createImgData(width, height) {
     return newImgData
 }
 
-function onDone(canvas, convClass, callback) {
+async function onDone(canvas, convClass, callback) {
     $(`#${convClass} > *`).remove();
 
     canvas.className = 'outputImg';
@@ -908,14 +940,44 @@ function onDone(canvas, convClass, callback) {
 
     $(`#${convClass}`).append(
         `<div class="afterImage">
-            <div class="line">Imgur upload is not supported yet</div>
-            ${convClass === 'patOut' ? `<div class="line">Итоговый размер картинки: ${canvas.width}x${canvas.height}</div>` : ''}
+            <div class="line"><button class="uploadButton"> ${t('Upload on imgur!')} </button></div>
+            <div class="line"><span class="imgurUrl"></span></div>
+            ${convClass === 'patOut' ? `<div class="line">${t('Final image size:')} ${canvas.width}x${canvas.height}</div>` : ''}
         </div>`
     );
-
     imgZoom.createZoomHandler($(`#${convClass}`).children(0)[0]);
+
+    $(`#${convClass} .uploadButton`).on('click', async () => {
+        $(`#${convClass} .uploadButton`).off('click');
+        $(`#${convClass} .imgurUrl`).text('Uploading...');
+
+        try {
+            const link = await upload(canvas.toDataURL().split(",")[1]);
+            const isPNG = link.endsWith('png');
+            $(`#${convClass} .imgurUrl`).html(
+                `<span style="color:${isPNG ? 'rgb(0, 190, 0)' : 'rgb(249, 141, 141)'}">${link}${convClass === 'patOut' ? `?width=${canvas.width / 7}` : ''}</span>`
+            )
+        } catch {
+            const text = t('Imgur upload failed, try upload manually and add this to a link:') +
+                (convClass == 'patOut' ? ` "?width=${canvas.width / 7}"` : '');
+
+            $(`#${convClass} .imgurUrl`).text(text)
+        }
+    });
 
     callback();
 }
 
-visualizePalette();
+let palName;
+loadGamePalettes().then(() => {
+    palName = 'game.main'
+}).catch(() => {
+    toastr.error(t('Failed to load game palettes!'));
+    palName = 'pixelplanet'
+}).finally(() => {
+    applyPalettes(palName);
+    paletteRGB = palettes[palName];
+
+    palUtils.updatePalette();
+    visualizePalette();
+});

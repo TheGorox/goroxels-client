@@ -5,10 +5,6 @@ import {
     insanelyLongMobileBrowserCheck
 } from './utils/misc'
 
-import {
-    get as getls
-} from './utils/localStorage'
-
 export default {
     socket: null,
     chunkManager: null,
@@ -20,7 +16,6 @@ export default {
     eventManager: new EventManager(document.getElementById('board')),
     mainCtx: document.getElementById('board').getContext('2d'),
     fxCtx: document.getElementById('fx').getContext('2d'),
-    lang: (getls('preferredLang') || navigator.language || navigator.userLanguage || 'en').substr(0, 2),
     mobile: insanelyLongMobileBrowserCheck(),
     users: {},
     elements: { // TODO move it to elements.js

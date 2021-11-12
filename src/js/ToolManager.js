@@ -11,7 +11,6 @@ import {
     stringifyKeyEvent,
     decodeKey
 } from './utils/misc';
-import toastr from 'toastr';
 
 const coords = document.getElementById('coords');
 
@@ -82,7 +81,9 @@ export default class ToolManager extends EventEmitter {
             }
         })
 
-        if (!isMobile) document.getElementById('tools').style.display = 'none';
+        // TODO make another css class/id for that
+        if (!isMobile)
+            document.getElementById('tools').style.cssText = 'display:none !important';
     }
 
     initEvents() {
@@ -93,6 +94,7 @@ export default class ToolManager extends EventEmitter {
                 camera.zoom *= zoom + 1;
                 camera.checkZoom();
                 globals.renderer.needRender = true;
+                globals.fxRenderer.needRender = true;
             });
 
             em.on('mousedown', e => {
@@ -106,29 +108,22 @@ export default class ToolManager extends EventEmitter {
             let events = [
                 ['mousedown', 'down'],
                 ['mousemove', 'move'],
-                ['mouseup', 'up'],
-                ['tick', 'tick']
+                ['mouseup', 'up']
             ];
 
             events.forEach(event => {
-                const [realEvent, myEvent] = event[0];
+                const [realEvent, myEvent] = event;
                 em.on(realEvent, e => {
-                    if(event === 'tick'){
-                        Object.keys(this.tools).forEach(name => {
-                            const tool = this.tools[name];
-                            if(tool.listenerCount(e) > 0){
-                                tool.emit(myEvent, e);
-                            }
-                        });
-                        return
-                    }
                     let tool = this.tool;
                     if (e && e.gesture) {
                         tool = this.tools.mover;
                     }
                     if (!tool) return
 
+                    // emit to selected tool
                     tool.emit(myEvent, e);
+                    // emit to other subscribers
+                    this.emit(myEvent, e);
                 });
             });
         } else {
@@ -137,21 +132,19 @@ export default class ToolManager extends EventEmitter {
                 this.tools.mover.emit('down', e)
             });
             em.on('mouseup', e => {
-                if(e.button === 2){
+                if (e.button === 2) {
                     player.switchColor(-1);
                     player.switchSecondColor(-1);
-                    globals.fxRenderer.needRender = true;
                 }
                 this.tools.mover.emit('up', e);
             });
             em.on('mousemove', e => {
-                if (e.buttons === 0) {
+                if (e.buttons === 0 || camera.noMoving) {
                     updatePlayerCoords(e.clientX, e.clientY);
                 }
 
-                this.tool != tools.mover && this.tools.mover.emit('move', e);
-
                 this.tool.emit('move', e)
+                this.emit('move', e);
             });
 
             em.on('keydown', e => {
@@ -164,8 +157,10 @@ export default class ToolManager extends EventEmitter {
                     e.preventDefault();
                     e.stopPropagation();
 
-                    // todo
+                    // TODO
                     this.tool = tool; // костыль, переделать
+                    // Как? подписываться на mousemove при down
+                    // и отписываться при up
                     tool.emit('down', e);
                 }
             });
@@ -176,14 +171,14 @@ export default class ToolManager extends EventEmitter {
 
                 const tool = this._keyBinds[str];
 
-                for(let name of Object.keys(this.tools)){
+                for (let name of Object.keys(this.tools)) {
                     const tool2 = this.tools[name];
 
-                    if(!tool2.key || tool2 === tool)
+                    if (!tool2.key || tool2 === tool)
                         continue;
 
                     const key = decodeKey(tool2.key);
-                    if(key.keyCode === e.keyCode){
+                    if (key.keyCode === e.keyCode) {
                         tool2.emit('up', e)
                     }
                 }
@@ -206,16 +201,17 @@ export default class ToolManager extends EventEmitter {
                 camera.moveTo((dx / oldZoom), (dy / oldZoom));
                 camera.moveTo(-(dx / camera.zoom), -(dy / camera.zoom));
             });
-
-            em.on('tick', e => {
-                Object.keys(this.tools).forEach(name => {
-                    const tool = this.tools[name];
-                    if(tool.listenerCount('tick') > 0){
-                        tool.emit('tick', e);
-                    }
-                });
-            });
         }
+
+        // TODO: add listener directly to ToolManager, istead of tool itself, avoiding cyclic check
+        em.on('tick', e => {
+            Object.keys(this.tools).forEach(name => {
+                const tool = this.tools[name];
+                if (tool.listenerCount('tick') > 0) {
+                    tool.emit('tick', e);
+                }
+            });
+        });
     }
 
     changeKey(tool, key) {

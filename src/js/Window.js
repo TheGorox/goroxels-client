@@ -2,6 +2,8 @@
 // copyright GOROX
 
 import jQuery from 'jquery';
+import trashSVG from '../img/trash2.svg'
+import closeSVG from '../img/cross.svg'
 
 const deleteEl = document.createElement('div'); // элемент для удаления окон
 deleteEl.style.cssText =
@@ -23,9 +25,9 @@ deleteEl.style.cssText =
     padding-left: 3px; /* костыль из-за кривой иконки мусорки */
     display: none;
     user-select: none;
-    transition: all .2s ease
+    transition: all .2s ease;
+    background-image: url(${trashSVG});
 `;
-deleteEl.innerText = '🗑';
 
 let deleteRange = document.createElement('div');
 deleteRange.style.cssText =
@@ -42,21 +44,35 @@ deleteRange.style.cssText =
     display: none;
 `
 
-deleteEl.onmouseenter = deleteRange.onmouseenter = () => {
+deleteEl.onpointerenter = deleteRange.onpointerenter = () => {
     deleteEl.style.opacity = '1';
 };
 
-deleteEl.onmouseleave = deleteRange.onmouseleave = () => {
+deleteEl.onpointerleave = deleteRange.onpointerleave = () => {
     deleteEl.style.opacity = '.5';
 };
 
-document.body.appendChild(deleteEl);
-document.body.appendChild(deleteRange);
+// disabled due new way to close
+// document.body.appendChild(deleteEl);
+// document.body.appendChild(deleteRange);
 
 let windows = [];
+window.windows = windows;
 
 export default class Window {
+    static Exists(title){
+        return windows.some(x => x.title === title)
+    }
+    static Find(title){
+        return windows.find(x => x.title === title)
+    }
     constructor(config) {
+        // all values also will be loaded from config few lines below
+
+        // title can be passed instead of config
+        if(typeof config == 'string')
+            config = {title:config}
+
         this.created = false;
 
         this.x = 0;
@@ -66,36 +82,38 @@ export default class Window {
 
         this.parent = document.body;
 
-        // не ставьте на false, пока что нет способа закрыть не двигая
+        // do not set to false if closeable
         this.moveable = true;
         this.closeable = true;
         this.closed = false;
 
         this.center = false;
 
+        // here
         Object.assign(this, config);
 
-        // TODO remove this?
-        if (windows.includes(this.title)) {
-            this.closed = true;
+        if (Window.Exists(this.title)) {
+            this.oldWindow = Window.Find(this.title);
             return
         }
 
         this.created = true;
 
-        this.block = this.createParentBlock();
-
-        this.moveTo(this.x, this.y); // user defined coordinates
-
-        this.parent.appendChild(this.block);
+        if(!this.block){ // for static windows like chat
+            this.block = this.createParentBlock();
+            this.moveTo(this.x, this.y); // user defined coordinates
+            this.parent.appendChild(this.block);
+        }
 
         if (this.center) {
             this.moveToCenter();
+            // костыль: центрирует неправильно до рендера
+            setTimeout(() => this.moveToCenter());
         }
 
         this.addFeatures();
 
-        windows.push(this.title);
+        windows.push(this);
     }
 
     createParentBlock() {
@@ -108,6 +126,19 @@ export default class Window {
         head.innerHTML = '<h3>' + this.title + '</h3>';
         el.appendChild(head);
 
+        if(this.closeable){
+            const closer = document.createElement('div');
+            closer.className = 'closeWindow';
+            closer.innerHTML = '<div></div>';
+
+            closer.addEventListener('pointerdown', event => {
+                // prevent window moving
+                event.stopPropagation();
+            });
+            closer.addEventListener('click', this.close.bind(this));
+            head.appendChild(closer);
+        }
+
         let body = document.createElement('div');
         body.className = 'windowBody';
         el.appendChild(body);
@@ -117,8 +148,15 @@ export default class Window {
     }
 
     moveTo(x, y) {
-        this.x = Math.max(0, x);
-        this.y = Math.max(0, y);
+        const rect = this.block.getBoundingClientRect();
+        const w = rect.width,
+            h = rect.height;
+
+        this.x = Math.max(-w+10, x);
+        this.y = Math.max(-h+10, y);
+
+        this.x = Math.min(window.innerWidth-10, this.x);
+        this.y = Math.min(window.innerHeight-10, this.y);
 
         this.block.style.left = this.x + 'px';
         this.block.style.top = this.y + 'px';
@@ -143,48 +181,72 @@ export default class Window {
 
     addFeatures() {
         if (this.moveable) {
-            this.block.addEventListener('mousedown', () => {
+            const ratio = window.devicePixelRatio||1;
+
+            $(this.block).on('pointerdown', () => {
                 let self = this;
 
-                jQuery(document).on('mousemove', moved)
+                jQuery(document).on('pointermove', moved)
 
                 function moved(e) {
                     e = e.originalEvent;
 
-                    let movedX = e.movementX,
-                        movedY = e.movementY;
+                    let movedX = e.movementX/ratio,
+                        movedY = e.movementY/ratio;
 
                     self.moveBy(movedX, movedY);
                 }
+
+                jQuery([deleteEl, deleteRange]).on('pointermove', () => {
+                    console.log('mo')
+                })
 
                 if (this.closeable) {
                     deleteEl.style.display = 'block';
                     deleteRange.style.display = 'block';
 
-                    jQuery([deleteEl, deleteRange]).one('mouseup', () => {
+                    jQuery([deleteEl, deleteRange]).one('pointerup', () => {
                         this.close();
                     })
                 }
 
-                jQuery(document).one('mouseup mouseleave', () => {
+                jQuery(document).one('pointerup pointerleave', () => {
                     deleteEl.style.display = 'none';
                     deleteRange.style.display = 'none';
 
-                    jQuery([deleteEl, deleteRange]).off('mouseup');
+                    jQuery([deleteEl, deleteRange]).off('pointerup');
 
-                    jQuery(document).off('mousemove', moved);
+                    jQuery(document).off('pointermove', moved);
                 });
             });
 
-            this.body.addEventListener('mousedown', e => {
+            $(this.body).on('pointerdown', e => {
                 e.stopPropagation();
             })
         }
+
+        // for window be in screen after
+        // screen rotation
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                this.moveTo(this.x, this.y);
+            }, 500);
+        })
     }
 
     close() {
         jQuery(this.block).remove();
         this.closed = true;
-        windows.splice(windows.indexOf(this.title))
+        windows.splice(windows.indexOf(this), 1);
+    }
+}
+
+export class DialogWindow extends Window{
+    constructor(config){
+        super(config);
+
+        if(!config.buttons) return;
+
+
     }
 }

@@ -1,15 +1,23 @@
-import { palette } from './config';
 import Bucket from './Bucket';
 import globals from './globals';
+import { get, getOrDefault, set } from './utils/localStorage';
 
-export default window.player = {
+export default {
     x: 0,
     y: 0,
-    color: Math.random() * palette.length | 0,
+    color: +getOrDefault('color1', -1),
     brushSize: 1,
-    secondCol: -1,
-    switchColor(id){
-        this.color = id;
+    secondCol: +getOrDefault('color2', -1),
+    id: -1,
+    init(){
+        this.switchColor(this.color, true);
+        this.switchSecondColor(this.secondCol, true);
+    },
+    switchColor(id, initial=false){
+        if(this.color === id && !initial)
+            id = this.color = -1;
+        else
+            this.color = id;
         globals.fxRenderer.needRender = true;
         globals.renderer.preRender();
 
@@ -22,9 +30,14 @@ export default window.player = {
             const size = +localStorage.palSize;
             $('.selected').css('width', size+5).css('height', size+5);
         }
+
+        set('color1', id);
     },
-    switchSecondColor(id){
-        this.secondCol = id;
+    switchSecondColor(id, initial){
+        if(this.secondCol === id && !initial)
+            id = this.secondCol = -1;
+        else
+            this.secondCol = id;
         globals.fxRenderer.needRender = true;
         globals.renderer.preRender();
 
@@ -37,18 +50,23 @@ export default window.player = {
             const size = +localStorage.palSize;
             $('.selectedSecond').css('width', size+2).css('height', size+2);
         }
+
+        set('color2', id);
     },
     swapColors(){
         const temp = this.color;
         this.switchColor(this.secondCol);
         this.switchSecondColor(temp);
     },
+    resetColors(){
+        this.switchColor(-1);
+        this.switchSecondColor(-1);
+    },
     bucket: null,
     updateBucket([delay, max]) {
         this.bucket = new Bucket(delay, max);
     },
     placed: [],
-    maxPlaced: isNaN(+localStorage['maxPlaced']) ? 500 : +localStorage['maxPlaced']
+    maxPlaced: isNaN(+localStorage['maxPlaced']) ? 500 : +localStorage['maxPlaced'],
+    placedCount: +get('placedCount') || 0
 }
-
-window.player = player

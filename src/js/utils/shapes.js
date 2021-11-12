@@ -35,11 +35,11 @@ export default {
     filledCircle: function (centerX, centerY, r) {
         let pixels = [];
 
-        const squareR = r*r;
+        const squareR = r * r;
 
         for (let _x = -r + centerX; _x < r + centerX; _x++) {
             for (let _y = -r + centerY; _y < r + centerY; _y++) {
-                if(isIn(_x, _y)){
+                if (isIn(_x, _y)) {
                     pixels.push([_x, _y])
                 }
             }
@@ -49,9 +49,25 @@ export default {
             let dx = _x - centerX,
                 dy = _y - centerY;
 
-            if (dx*dx + dy*dy <= squareR*0.8)
+            if (dx * dx + dy * dy <= squareR * 0.8)
                 return true
             return false
+        }
+
+        return pixels
+    },
+
+    square(x1, y1, x2, y2) {
+        const minX = Math.min(x1, x2),
+            minY = Math.min(y1, y2),
+            maxX = Math.max(x1, x2),
+            maxY = Math.max(y1, y2);
+
+        let pixels = [];
+        for (let y = minY; y < maxY+1; y++) {
+            for (let x = minX; x < maxX+1; x++) {
+                pixels.push([x, y]);
+            }
         }
 
         return pixels

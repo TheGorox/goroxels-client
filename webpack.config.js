@@ -13,7 +13,7 @@ const srcDir = path.resolve(__dirname, 'src');
 
 const config = {
     entry: {
-        not_a_bundle: path.resolve(srcDir, 'js/main.js'),
+        game: path.resolve(srcDir, 'js/main.js'),
         converters: path.resolve(srcDir, 'js/convert/main.js'),
         admin: path.resolve(srcDir, 'js/admin/main.js')
     },
@@ -66,7 +66,7 @@ const config = {
             filename: 'index.html',
             template: path.resolve(srcDir, 'html/index.html'),
             favicon: path.resolve(srcDir, 'favicon.ico'),
-            chunks: ['not_a_bundle']
+            chunks: ['game']
         }),
         new HtmlWebpackPlugin({
             filename: 'convert.html',

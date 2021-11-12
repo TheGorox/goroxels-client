@@ -1,5 +1,3 @@
-import config from '../../../shared/config.json';
-
 let palettes = {
     pixelzone: [
         [38, 38, 38],
@@ -175,8 +173,21 @@ let palettes = {
     ]
 };
 
-config.canvases.forEach(canvas => {
-    palettes['game.' + canvas.name] = canvas.palette;
-});
+async function loadConfig(){
+    const resp = await fetch('/config.json');
+    return await resp.json();
+}
+
+export async function loadGamePalettes(){
+    try{
+        const config = await loadConfig();
+        config.canvases.forEach(canvas => {
+            palettes['game.' + canvas.name] = canvas.palette;
+        });
+    }catch(e){
+        toastr.warning('Failed to load game palettes')
+    }
+}
+
 
 export default palettes

@@ -1,42 +1,63 @@
 import globals from './globals'
 import {
-    minZoom,
-    maxZoom,
     boardWidth,
     boardHeight
 } from './config'
+import EventEmitter from 'events';
+import { getOrDefault } from './utils/localStorage';
 
+const camera = {
+    x: null, y: null,
+    zoom: null,
+    minX: null, minY: null, 
+    maxX: null, maxY: null,
 
-export default window.camera = {
-    x: 0,
-    y: 0,
-    zoom: 1,
+    minZoom: 0.25,
+    maxZoom: 64,
 
-    minX: -boardWidth/2,
-    minY: -boardHeight/2,
-    maxX: boardWidth/2,
-    maxY: boardHeight/2,
+    // when it's needed to disable moving
+    noMoving: false,
+
+    init(){
+        Object.assign(this, {
+            x: +getOrDefault('posX', 0),
+            y: +getOrDefault('posY', 0),
+
+            zoom: +getOrDefault('zoom', 1),
+
+            minX: -boardWidth/2,
+            minY: -boardHeight/2,
+            maxX: boardWidth/2,
+            maxY: boardHeight/2,
+        })
+        if(isNaN(this.x) || isNaN(this.y) || isNaN(this.zoom)){
+            this.x = 0;
+            this.y = 0;
+            this.zoom = 1;
+        }
+    },
 
     centerOn(x, y){
+        globals.renderer.needRender = true;
+        if(this.noMoving) return;
+        
         this.x = x - this.maxX;
         this.y = y - this.maxY;
 
-        this.checkPos();
-
-        globals.renderer.needRender = true;
-        globals.fxRenderer.needRender = true;
+        this.clampPos();
     },
 
     moveTo(movx, movy){
+        globals.renderer.needRender = true;
+        if(this.noMoving) return;
+
         this.x += movx;
         this.y += movy;
 
-        this.checkPos();
-
-        globals.renderer.needRender = true;
+        this.clampPos();
     },
 
-    checkPos(){
+    clampPos(){
         this.x = Math.min(Math.max(this.x, this.minX), this.maxX);
         this.y = Math.min(Math.max(this.y, this.minY), this.maxY);
     },
@@ -49,6 +70,8 @@ export default window.camera = {
         }
         this.checkZoom();
 
+        this.emit('zoom', this.zoom);
+
         globals.renderer.needRender = true;
         globals.fxRenderer.needRender = true;
 
@@ -56,6 +79,31 @@ export default window.camera = {
     },
 
     checkZoom(){
-        this.zoom = Math.min(Math.max(this.zoom, minZoom), maxZoom)
-    }
+        this.zoom = Math.min(Math.max(this.zoom, this.minZoom), this.maxZoom)
+    }, 
+
+    disableMove(){
+        this.noMoving = true;
+    },
+
+    enableMove(){
+        this.noMoving = false;
+    },
+
+    __proto__: new EventEmitter
 }
+
+let lastX, lastY, lastZ;
+setInterval(() => {
+    const newX = camera.x,
+        newY = camera.y,
+        newZ = camera.zoom;
+
+    if(lastX != newX) localStorage.setItem('posX', newX);
+    if(lastY != newY) localStorage.setItem('posY', newY);
+    if(lastZ != newZ) localStorage.setItem('zoom', newZ);
+
+    lastX = newX; lastY = newY; lastZ = newZ;
+}, 3000);
+
+export default (window.camera = camera);

@@ -1,15 +1,12 @@
-import { canvasId, game } from './config';
+import { canvasName, game } from './config';
 import globals from './globals';
+import { translate as t_ } from './translate';
 import cssColors from './utils/cssColorsList'
+import { getOrDefault } from './utils/localStorage';
+import { htmlspecialchars } from './utils/misc';
 
-function htmlspecialchars(text) {
-    return text
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
+// currently chat supports only one channel
+// but socket is designed to handle many
 
 function pad(pad, str, padLeft) {
     if (typeof str === 'undefined')
@@ -23,21 +20,27 @@ function pad(pad, str, padLeft) {
 
 class Chat {
     constructor() {
-        this.element = $('#chatLog');
+        this.element = $('#chat');
+        this.logElem = $('#chatLog');
 
-        this.colorsEnabled = true;
+        this.colorsEnabled = !JSON.parse(getOrDefault('disableColors', false));
 
         this.muted = JSON.parse(localStorage.getItem('muted')) || [];
+    }
+
+    // mobile version of hide/show
+    mobileShow(){
+        this.element.css('top', '0');
+    }
+
+    mobileHide(){
+        this.element.css('top', '-100vh');
     }
 
     setColors(state) {
         this.colorsEnabled = state;
 
-        $('chatColored').toggleClass('noColor', state);
-    }
-
-    setShowColors(){
-
+        $('.chatColored').toggleClass('noColor', !state);
     }
 
     parseColors(str) {
@@ -79,7 +82,13 @@ class Chat {
         return str
     }
 
+    parseCoords(text){
+        return text.replace(/\((\d{1,5}), ?(\d{1,5})\)/g,
+        `<a class="cordgo" onclick="camera.centerOn($1, $2)">$&</a>`)
+    }
+
     // TODO?
+    // probably, no
     //parseBB(){}
 
     addMessage(message) {
@@ -92,6 +101,8 @@ class Chat {
         const realNick = nick;
 
         text = this.parseColors(text);
+        text = this.parseCoords(text);
+
         nick = this.parseColors(nick);
 
         const isMuted = ~this.muted.indexOf(realNick);
@@ -102,20 +113,21 @@ class Chat {
             <div class="messageText">${text}</div>
         </div>`)
 
-        this.element.append(msgEl);
+        this.logElem.append(msgEl);
 
         this.afterAddingMessage();
     }
 
     addLocalMessage(text) {
         text = this.parseColors(text);
+        text = this.parseCoords(text);
 
         const msgEl = $(
             `<div class="chatMessage">
                 <div class="messageText">${text}</div>
             </div>`)
 
-        this.element.append(msgEl);
+        this.logElem.append(msgEl);
 
         this.afterAddingMessage();
     }
@@ -125,10 +137,10 @@ class Chat {
     }
 
     afterAddingMessage(){
-        if(this.element.children().length > game.chatLimit){
-            this.element.children()[0].remove();
+        if(this.logElem.children().length > game.chatLimit){
+            this.logElem.children()[0].remove();
         }
-        this.element[0].scrollBy(0, 999);
+        this.logElem[0].scrollBy(0, 999);
     }
 
     // handles messages to send
@@ -136,7 +148,7 @@ class Chat {
         if (message.startsWith('/')) {
             this.handleCommand(message);
         } else
-            globals.socket.sendChatMessage(message, canvasId);
+            globals.socket.sendChatMessage(message, canvasName);
     }
 
     // handles chat commands
@@ -156,10 +168,10 @@ class Chat {
         const pref = '<b>mute:</b> ';
 
         if (!nick.length || nick.length > 32) {
-            return this.addLocalMessage(pref + 'Wrong nick length')
+            return this.addLocalMessage(pref + t_('Wrong nick length'))
         }
         if(~this.muted.indexOf(nick)){
-            return this.addLocalMessage(pref + 'Player is already muted')
+            return this.addLocalMessage(pref + t_('Player is already muted'))
         }
 
         this.muted.push(nick);
@@ -176,10 +188,10 @@ class Chat {
         let pref = '<b>unmute:</b> ', index;
 
         if (!nick.length || nick.length > 32) {
-            return this.addLocalMessage(pref + 'Wrong nick length')
+            return this.addLocalMessage(pref + t_('Wrong nick length'))
         }
         if(!~(index=this.muted.indexOf(nick))){
-            return this.addLocalMessage(pref + 'Player is not muted')
+            return this.addLocalMessage(pref + t_('Player is not muted'))
         }
 
         this.muted.splice(index, 1);

@@ -8,13 +8,17 @@ import {
     packPixel
 } from './protocol';
 import {
-    boardWidth,
-    boardHeight,
-    canvasId
+    canvasId,
+    canvasName
 } from './config'
 import globals from './globals'
 import User from './user';
 import chat from './chat';
+import { captchaModal } from './windows';
+import Window from './Window';
+import player from './player';
+import { updatePlaced } from './actions';
+import { translate } from './translate';
 
 export default class Socket extends EventEmitter {
     constructor(port) {
@@ -25,6 +29,8 @@ export default class Socket extends EventEmitter {
         this.url = `${scheme}://${host}:${port}`;
 
         this.pendingPixels = {};
+
+        this.connectedOnce = false;
 
         this.connect();
     }
@@ -38,13 +44,31 @@ export default class Socket extends EventEmitter {
         this.socket.binaryType = 'arraybuffer';
 
         this.socket.onopen = () => {
+            this.sendChatSubscribe(canvasName, this.connectedOnce);
             this.sendCanvas(canvasId);
 
             this.emit('opened');
             console.log('Socket has been connected');
+
+            if(!this.connectedOnce) this.connectedOnce = true;
         }
 
         this.socket.onmessage = this.onmessage.bind(this);
+
+        this.socket.onclose = () => {
+            this.emit('closed');
+            Object.values(globals.users).forEach(u => u.destroy());
+
+            setTimeout(() => {
+                // TODO modal or toastr warning
+                console.log('reconnect');
+                this.reconnect();
+            }, Math.random()*5000);
+        }
+    }
+
+    close(){
+        this.socket.close();
     }
 
     reconnect() {
@@ -102,7 +126,15 @@ export default class Socket extends EventEmitter {
             }
 
             case STRING_OPCODES.error: {
-                decoded.errors.forEach(error => toastr.error(error));
+                decoded.errors.forEach(error => {
+                    if(error === 'error.captcha'){
+                        if(!Window.Exists('Captcha'))
+                            captchaModal();
+                    }
+                    toastr.error(error, translate('Error from the Socket:'), {
+                        preventDuplicates: true
+                    });
+                });
 
                 break;
             }
@@ -121,6 +153,16 @@ export default class Socket extends EventEmitter {
                 })
                 break
             }
+
+            case STRING_OPCODES.me: {
+                player.id = decoded.id;
+                break
+            }
+
+            case STRING_OPCODES.reload: {
+                location.reload();
+                break
+            }
         }
     }
 
@@ -128,6 +170,10 @@ export default class Socket extends EventEmitter {
         const dv = new DataView(msg);
 
         switch (dv.getUint8(0)) {
+            case OPCODES.captcha: {
+                captchaModal();
+                break
+            }
             case OPCODES.chunk: {
                 const cx = dv.getUint8(1);
                 const cy = dv.getUint8(2);
@@ -156,6 +202,8 @@ export default class Socket extends EventEmitter {
                 }
 
                 this.emit('place', x, y, col, id);
+                if(id === player.id)
+                    updatePlaced(player.placedCount++);
 
                 break
             }
@@ -178,6 +226,7 @@ export default class Socket extends EventEmitter {
                         this.emit('place', x, y, col, uid);
                     }
 
+                    // TODO move this out this cycle
                     if(i == dv.byteLength-4){
                         const user = globals.users[uid];
                         if(user) user.updateCoords(col, x, y);
@@ -228,6 +277,16 @@ export default class Socket extends EventEmitter {
         dv.setUint8(1, id);
 
         this.socket.send(dv.buffer);
+    }
+
+    sendChatSubscribe(channel, isReconnect){
+        const packet = {
+            c: STRING_OPCODES.subscribeChat,
+            ch: channel,
+            reconnect: isReconnect
+        }
+
+        this.socket.send(JSON.stringify(packet));
     }
 
     sendChatMessage(text, channel) {

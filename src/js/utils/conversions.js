@@ -30,7 +30,7 @@ export function boardToScreenSpace(x, y) {
     x += globals.renderer.canvas.width >> 1; // x >> 1 = x / 2
     y += globals.renderer.canvas.height >> 1;
 
-    return [x | 0, y | 0]
+    return [Math.floor(x), Math.floor(y)]
 }
 
 export function boardToChunk(x, y) {

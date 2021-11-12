@@ -4,10 +4,13 @@ import {
 } from '../config';
 import globals from '../globals';
 
-export const halfMap = [
-    boardWidth / 2,
-    boardHeight / 2
-]
+export let halfMap = [null, null]
+export function initHalfmap(){
+    halfMap = [
+        boardWidth / 2,
+        boardHeight / 2
+    ]
+}
 
 export function insanelyLongMobileBrowserCheck() {
     let check = false;
@@ -54,6 +57,14 @@ export function calculateColumnSize(){
 
     const colWidth = windowWidth / columns.length;
 
-    console.log('calculated wid: ' + colWidth, $('.column', globals.elements.topMenuContent));
     $('.column', globals.elements.topMenuContent).css('width', colWidth);
+}
+
+export function htmlspecialchars(text) {
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }

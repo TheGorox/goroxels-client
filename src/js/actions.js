@@ -1,13 +1,12 @@
 import me from './me';
 import {
-    cooldown,
-    canvasId,
-    argbToId,
-    chunkSize
+    cooldown, palette
 } from './config';
 import player from './player';
 import {
+    get,
     getOrDefault,
+    set,
     set as setLs
 } from './utils/localStorage'
 import {
@@ -29,15 +28,44 @@ import {
     accountSettings,
     keyBinds,
     uiSettings,
-    gameSettings
+    gameSettings,
+    toolsWindow,
+    help
 } from './windows'
 import { ROLE, ROLE_I } from './constants'
 import chat from './chat';
+import Window from './Window';
+import { translate as t_ } from './translate';
+
+export async function apiRequest(path, config = {}) {
+    // handle json body of request
+    if (config.body && typeof config.body === 'object') {
+        if (!config.headers) config.headers = {};
+
+        config.headers['Content-Type'] = 'application/json';
+        config.body = JSON.stringify(config.body);
+    }
+    const response = await fetch('/api' + path, config);
+
+    if (response.headers.get('Content-Type') && response.headers.get('Content-Type').includes('application/json')) {
+        try {
+            const json = await response.json()
+
+            if (json.errors) {
+                json.errors.forEach(error => {
+                    toastr.error(error);
+                })
+            }
+
+            response.json = () => json;
+        } catch (e) { }
+    }
+
+    return response
+}
 
 async function fetchMe() {
-    const response = await fetch('/api/me', {
-        credentials: "include"
-    });
+    const response = await apiRequest('/me');
     return await response.json();
 }
 
@@ -51,9 +79,9 @@ export async function updateMe() {
         chatInput.val('');
 
         $('#chatNick').text(user.name);
-    }else{
+    } else {
         chatInput.attr('disabled');
-        chatInput.val('login to chat');
+        chatInput.val(t_('login to chat'));
 
         $('#chatNick').text('CHAT');
     }
@@ -61,7 +89,9 @@ export async function updateMe() {
 
 export function getMyCooldown() {
     const cooldowns = cooldown;
-    return cooldowns[ROLE_I[me.role]] || [0, 32];
+
+    if (ROLE_I[me.role] == 'ADMIN') return [0, 32]
+    return cooldowns[ROLE_I[me.role]] || cooldown.GUEST;
 }
 
 export function initInputs() {
@@ -72,7 +102,7 @@ export function initInputs() {
 }
 
 function loadValues() {
-    const urlVal = getOrDefault('template.url', 'https://i.imgur.com/46fwf6C.png');
+    const urlVal = getOrDefault('template.url', 'https://i.imgur.com/46fwf6C.png?width=80');
     urlInput.val(urlVal);
 
     const xVal = getOrDefault('template.x', 0);
@@ -85,31 +115,26 @@ function loadValues() {
     opacInput.val(parseFloat(opacVal));
 }
 
-function initHandlers() {
-    function forceTemplateUpdate() {
-        template.update();
-
-        // TODO optimize it maybe
-        saveTemplate();
-    }
-
-    function forceTemplateRender() {
-        forceTemplateUpdate();
-        template.render();
-    }
-
-    urlInput.on('input', forceTemplateUpdate);
-    xInput.on('input', forceTemplateRender);
-    yInput.on('input', forceTemplateRender);
-    opacInput.on('input', forceTemplateUpdate);
-
-    // initial force
-    forceTemplateRender();
+function saveTemplate() {
+    setLs('template.x', template.x);
+    setLs('template.y', template.y);
+    setLs('template.url', template.url);
+    setLs('template.opac', template.opacity);
 }
 
-export function initOtherCoolFeatures() {
-    initTemplateMoveByMouse();
-    initModMenu();
+export function updateTemplate() {
+    template.update();
+    template.render();
+    saveTemplate();
+}
+
+function initHandlers() {
+    urlInput.on('input', updateTemplate);
+    xInput.on('input', updateTemplate);
+    yInput.on('input', updateTemplate);
+    opacInput.on('input', updateTemplate);
+
+    updateTemplate();
 }
 
 function initTemplateMoveByMouse() {
@@ -152,59 +177,71 @@ function initTemplateMoveByMouse() {
     })
 }
 
-function saveTemplate(){
-    setLs('template.x', template.x);
-    setLs('template.y', template.y);
-    setLs('template.url', template.url);
-    setLs('template.opac', template.opacity);
-}
-
 function initButtons() {
     $('#accountSettings').on('click', accountSettings);
     $('#toolBinds').on('click', keyBinds);
     $('#uiSettings').on('click', uiSettings);
     $('#canvasSettings').on('click', gameSettings);
+    $('#toolsB').on('click', toolsWindow);
 }
 
-function initChat(){
-    chatInput.on('keydown', e => {
-        if(e.code !== 'Enter') return;
+function initChat() {
+    $(document).on('keydown', e => {
+        if (e.key !== 'Enter') return;
 
-        const message = chatInput.val();
-        if(!message.length) return;
+        if ($('#chatInput').is(':focus')) {
+            // send if focused
+            const message = chatInput.val();
+            if (!message.length)
+                return chatInput.trigger('blur');
 
-        chatInput.val('');
+            chatInput.val('');
 
-        chat.handleMessage(message);
-    })
+            chat.handleMessage(message);
+        } else {
+            // or focus if not
+            $('#chatInput').trigger('focus');
+        }
+    });
+
 }
 
+export function placePixels(pixels, store = true) {
+    // does not check pixels
 
-export function placePixel(x, y, col, store=true) {
+    if (store) {
+        pixels.forEach(([x, y]) => {
+            player.placed.push([x, y, globals.chunkManager.getChunkPixel(x, y)]);
+        })
+    }
+    globals.socket.sendPixels(pixels, false);
+}
+
+export function placePixel(x, y, col, store = true) {
     const oldCol = globals.chunkManager.getChunkPixel(x, y),
         isProtected = globals.chunkManager.getProtect(x, y);
 
     if (oldCol !== col && (!isProtected || me.role === ROLE.ADMIN) && globals.socket.connected) {
-            if(store){
-                player.placed.push([x, y, globals.chunkManager.getChunkPixel(x, y)]);
+        if (store) {
+            player.placed.push([x, y, globals.chunkManager.getChunkPixel(x, y)]);
 
-                if(player.placed.length > player.maxPlaced*2){
-                    player.placed = player.placed.slice(-player.maxPlaced);
-                }
+            if (player.placed.length > player.maxPlaced * 2) {
+                player.placed = player.placed.slice(-player.maxPlaced);
             }
+        }
 
-            globals.chunkManager.setChunkPixel(x, y, col);
-            globals.socket.sendPixel(x, y, col);
+        globals.chunkManager.setChunkPixel(x, y, col);
+        globals.socket.sendPixel(x, y, col);
+        globals.renderer.needRender = true;
+        globals.fxRenderer.needRender = true;
+
+        globals.socket.pendingPixels[x + ',' + y] = setTimeout(() => {
+            globals.chunkManager.setChunkPixel(x, y, oldCol);
             globals.renderer.needRender = true;
-            globals.fxRenderer.needRender = true;
-
-            globals.socket.pendingPixels[x + ',' + y] = setTimeout(() => {
-                globals.chunkManager.setChunkPixel(x, y, oldCol);
-                globals.renderer.needRender = true;
-            }, 3000)
-    }else{
-        if(isProtected){
-            toastr.error('This pixel is protected.', 'Ouch!', {
+        }, 3000)
+    } else {
+        if (isProtected) {
+            toastr.error(t_('This pixel is protected.'), t_('Error!'), {
                 preventDuplicates: true,
                 timeOut: 5000
             })
@@ -212,7 +249,7 @@ export function placePixel(x, y, col, store=true) {
     }
 }
 
-export function toggleChat(){
+export function toggleChat() {
     if (chatEl.css('display') === 'none') {
         chatEl.show();
         chatEl.css('left', '');
@@ -222,7 +259,7 @@ export function toggleChat(){
     }
 }
 
-export function toggleTopMenu(){
+export function toggleTopMenu() {
     if (topMenu.css('display') === 'none') {
         topMenu.show();
         topMenu.css('margin-top', '');
@@ -232,11 +269,21 @@ export function toggleTopMenu(){
     }
 }
 
-export function toggleEverything(){
-    ui.toggle();
+export function toggleEverything() {
+    // $('#ui>div>div').each((_, el) => {
+    //     if(el.style.getPropertyPriority('display') == 'important')
+    //         return;
+
+    //     if (el.style.display === 'none') {
+    //         $(el).css('display', '')
+    //     } else {
+    //         $(el).css('display', 'none')
+    //     }
+    // })
+    $('#ui').fadeToggle(100);
 }
 
-export function showProtected(show=true){
+export function showProtected(show = true) {
     globals.chunkManager.chunks.forEach(chunk => {
         chunk.showProtected = show;
         chunk.needRender = true;
@@ -244,30 +291,160 @@ export function showProtected(show=true){
     globals.renderer.needRender = true;
 }
 
-function initModMenu(){
+function initModMenu() {
     initSliding();
     initSendAlerts();
 
-    function initSliding(){
+    function initSliding() {
         $('#modMenu .title').on('click', e => {
             const m = $('#modMenu');
-            if(m.data('state') === 'open'){
+            if (m.data('state') === 'open') {
                 m.data('state', 'close');
                 m.css('right', 0);
-            }else{
+            } else {
                 m.data('state', 'open');
                 m.css('right', $('#modMenu .body').css('width'));
             }
         })
     }
 
-    function initSendAlerts(){
+    function initSendAlerts() {
         $('#sendAlerts').on('click', () => {
             const val = $('#sendAlertsText').val();
-            if(val.length == 0 || val.length > 2000) return;
+            if (val.length == 0 || val.length > 2000) return;
 
             $('#sendAlertsText').val('');
             globals.socket.sendAlert('all', val);
         })
     }
+}
+
+export async function fetchCaptcha() {
+    const resp = await apiRequest('/captcha/get');
+    return await resp.text()
+}
+
+export async function solveCaptcha(answer) {
+    const resp = await apiRequest('/captcha/solve', {
+        method: 'POST',
+        body: { answer }
+    });
+
+    const json = await resp.json();
+
+    if (json.success !== undefined)
+        return json.success;
+
+    return false
+}
+
+export function setPaletteRows(rows) {
+    let width = (window.innerWidth / 100) * rows;
+
+    $('#palette').css('max-width', width);
+}
+export function setPaletteColorsSize(size) {
+    changeSelector('.paletteColor', {
+        'min-width': size + 'px',
+        'min-height': size + 'px'
+    });
+    changeSelector('.paletteColor.selected', {
+        'min-width': size + 5 + 'px',
+        'min-height': size + 5 + 'px'
+    });
+}
+
+// you can't just change css se..
+function changeSelector(selector, obj) {
+    let el;
+    if (!(el = document.getElementById('REPLACE-' + selector))) {
+        el = document.createElement('style');
+        el.id = 'REPLACE-' + selector;
+    }
+
+    let styleArr = Object.keys(obj).map(prop => prop + ':' + obj[prop]);
+    el.innerText = `${selector}{${styleArr.join(';')}}`;
+
+    document.head.appendChild(el);
+}
+
+export function initMobileMenuToggler() {
+    $('.showMenu,.hideMenu').on('click', toggleTopMenu)
+}
+
+export function toggleEmojis(state) {
+    state ? $('#emotions').show() : $('#emotions').hide();
+}
+
+export function updateEmojis(list) {
+    const container = $('#emotions');
+    let html = '';
+
+    for (let el of list) {
+        html += `<div class="emotion">${el}</div>`;
+    }
+
+    container.html(html);
+
+    $('div', container).on('click', e => {
+        $('#chatInput')[0].value += e.target.innerText;
+        $('#chatInput').trigger('focus');
+    })
+}
+
+export function updateBrush(size) {
+    player.brushSize = +size;
+    globals.fxRenderer.needRender = true;
+
+    globals.renderer.preRenderBrush();
+
+    $('#brushSizeCounter').text(size - 1);
+}
+
+export function togglePlaced(state){
+    state ? $('#placedPixels').show() : $('#placedPixels').hide();
+}
+
+export function updatePlaced(count, handCount){
+    // FIXME: move it to interval?
+    $('#placedPixels').text(count);
+    if(handCount)
+        $('#placedPixels').attr('title', handCount);
+}
+
+let lastPlaced = player.placedCount;
+setInterval(() => {
+    if(lastPlaced !== player.placedCount){
+        set('placedCount', player.placedCount);
+        lastPlaced = player.placedCount;
+    }
+}, 3000)
+
+function initUISettings() {
+    setPaletteRows(getOrDefault('rowsRange', 100));
+    toggleEmojis(get('hideEmojis') != 1);
+    updateEmojis(getOrDefault('emojis', '🙁 🤔 😀 💚').split(' '));
+    togglePlaced(!+getOrDefault('hidePlaced', 1))
+    updatePlaced(get('placedCount'));
+}
+
+function initMobileChatToggle(){
+    $('.showChat').on('click', () => chat.mobileShow());
+    $('#hideChat').on('click', () => chat.mobileHide());
+}
+
+function initHelpButton(){
+    $('.helpBtn').on('click', () => {
+        help()
+    })
+}
+
+export function initOtherCoolFeatures() {
+    initTemplateMoveByMouse();
+    initModMenu();
+    initMobileMenuToggler();
+    initUISettings();
+    initMobileChatToggle();
+    initHelpButton();
+    player.init();
 }

@@ -24,3 +24,21 @@ export function applyColor(origColor, tintColor) {
         Math.round((1 - alpha) * origColor[2] + alpha * tintColor[2])
     ];
 }
+
+export function closestColor(rgb, palette){
+    let colorId = -1;
+    let score = 768; // 255 + 255 + 255
+
+    for(let i = 0; i < palette.length; i++){
+        const item = palette[i];
+
+        let scrnow = Math.abs(rgb[0] - item[0]) + Math.abs(rgb[1] - item[1]) + Math.abs(rgb[2] - item[2]);
+        if (scrnow < score) {
+            score = scrnow;
+            colorId = i;
+        }
+
+        if(scrnow == 0) break;
+    }
+    return colorId;
+}

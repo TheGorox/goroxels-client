@@ -15,23 +15,40 @@ export default class EventManager extends EventEmitter {
 
         this.el = element
 
-        this.pointers = new Map();
-        this._lastDist = null;
         this._zoomed = false;
 
-        element.addEventListener('pointerdown', e => {
-            this._lastDist = null;
-            if (this.pointers.size === 0) {
-                this.emit('mousedown', e)
+        // true from when two pointers started touch
+        // until both of them off
+        this.startedGesture = false,
+        this.pointers = 0;
+        function checkGesture(evName) {
+            let wasGesture = this.startedGesture;
+            if (evName === 'up') {
+                this.pointers = Math.max(this.pointers - 1, 0);
+                if (this.pointers == 0) this.startedGesture = false;
+            } else if (evName === 'down') {
+                if (++this.pointers >= 2)
+                    wasGesture = this.startedGesture = true;
             }
+            return wasGesture
+        }
+        checkGesture = checkGesture.bind(this)
 
-            this.pointers.set(e.pointerId, e);
+        element.addEventListener('pointerdown', e => {
+            e.gesture = checkGesture('down');
+            this.emit('mousedown', e);
         });
         document.addEventListener('pointermove', e => {
-            if (this.pointers.size <= 1) {
+            // not emitted because Interactjs below will emit this correctly
+            if(!checkGesture('move')){
                 this.emit('mousemove', e);
             }
         });
+        document.addEventListener('pointerup', e => {
+            e.gesture = checkGesture('up');
+            this.emit('mouseup', e);
+        });
+
         interact(element).gesturable({
             onmove: e => {
                 // console.log(e);
@@ -50,15 +67,6 @@ export default class EventManager extends EventEmitter {
                 })
             }
         })
-        document.addEventListener('pointerup', e => {
-            this._lastDist = null;
-            if (!this.pointers.has(e.pointerId)) return;
-
-            if (this.pointers.size === 1)
-                this.emit('mouseup', e);
-
-            this.pointers.delete(e.pointerId);
-        });
 
         this.tickLoop = setInterval(() => {
             this.emit('tick')
@@ -71,7 +79,7 @@ export default class EventManager extends EventEmitter {
         });
 
         document.addEventListener('keyup', e => {
-            if (!anyInputFocused()) { // means that this class is shit
+            if (!anyInputFocused()) {
                 this.emit('keyup', e)
             }
         });

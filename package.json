@@ -4,9 +4,8 @@
   "description": "",
   "main": "src/js/main.js",
   "scripts": {
-    "devBuild": "node ../goroxels-server/utils/copyConfig.js && webpack",
+    "devBuild": "webpack",
     "build": "webpack",
-    "devRelease": "node ../goroxels-server/utils/copyConfig.js && webpack --env.release",
     "release": "webpack --env.release"
   },
   "repository": {
