@@ -13,7 +13,6 @@ export function init(){
         text = text.replace(/^[\n\s]+/, '').replace(/[\n\s]+$/,'')
         const tr = translate(text);
         el.innerText = tr;
-        console.log(el, tr)
     }
     // translate attributes
     const allEls = $('*');
