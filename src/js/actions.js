@@ -4,10 +4,9 @@ import {
 } from './config';
 import player from './player';
 import {
-    get,
+    getLS,
     getOrDefault,
-    set,
-    set as setLs
+    setLS
 } from './utils/localStorage'
 import {
     screenToBoardSpace
@@ -36,6 +35,7 @@ import { ROLE, ROLE_I } from './constants'
 import chat from './chat';
 import Window from './Window';
 import { translate as t_ } from './translate';
+import { getRecommendedColorSize } from './utils/misc';
 
 export async function apiRequest(path, config = {}) {
     // handle json body of request
@@ -102,24 +102,24 @@ export function initInputs() {
 }
 
 function loadValues() {
-    const urlVal = getOrDefault('template.url', 'https://i.imgur.com/46fwf6C.png?width=80');
+    const urlVal = getOrDefault('template.url', 'https://i.imgur.com/46fwf6C.png?width=80', true);
     urlInput.val(urlVal);
 
-    const xVal = getOrDefault('template.x', 0);
+    const xVal = getOrDefault('template.x', 0, true);
     xInput.val(parseInt(xVal, 10));
 
-    const yVal = getOrDefault('template.y', 0);
+    const yVal = getOrDefault('template.y', 0, true);
     yInput.val(parseInt(yVal, 10));
 
-    const opacVal = getOrDefault('template.opac', 0.5);
+    const opacVal = getOrDefault('template.opac', 0.5, true);
     opacInput.val(parseFloat(opacVal));
 }
 
 function saveTemplate() {
-    setLs('template.x', template.x);
-    setLs('template.y', template.y);
-    setLs('template.url', template.url);
-    setLs('template.opac', template.opacity);
+    setLS('template.x', template.x, true);
+    setLS('template.y', template.y, true);
+    setLS('template.url', template.url, true);
+    setLS('template.opac', template.opacity, true);
 }
 
 export function updateTemplate() {
@@ -344,14 +344,8 @@ export function setPaletteRows(rows) {
     $('#palette').css('max-width', width);
 }
 export function setPaletteColorsSize(size) {
-    changeSelector('.paletteColor', {
-        'min-width': size + 'px',
-        'min-height': size + 'px'
-    });
-    changeSelector('.paletteColor.selected', {
-        'min-width': size + 5 + 'px',
-        'min-height': size + 5 + 'px'
-    });
+    if(!size) return;
+    $('.paletteColor').css('width', size).css('height', size);
 }
 
 // you can't just change css se..
@@ -415,17 +409,17 @@ export function updatePlaced(count, handCount){
 let lastPlaced = player.placedCount;
 setInterval(() => {
     if(lastPlaced !== player.placedCount){
-        set('placedCount', player.placedCount);
+        setLS('placedCount', player.placedCount, true);
         lastPlaced = player.placedCount;
     }
 }, 3000)
 
 function initUISettings() {
-    setPaletteRows(getOrDefault('rowsRange', 100));
-    toggleEmojis(get('hideEmojis') != 1);
+    setPaletteColorsSize(getLS('colorSize', true))
+    toggleEmojis(getLS('hideEmojis') != 1);
     updateEmojis(getOrDefault('emojis', '🙁 🤔 😀 💚').split(' '));
     togglePlaced(!+getOrDefault('hidePlaced', 1))
-    updatePlaced(get('placedCount'));
+    updatePlaced(getLS('placedCount', true));
 }
 
 function initMobileChatToggle(){
@@ -447,4 +441,17 @@ export function initOtherCoolFeatures() {
     initMobileChatToggle();
     initHelpButton();
     player.init();
+}
+
+export function fixColorsWidth(){
+    const savedWidth = getLS('colorSize', true);
+    const calculated = getRecommendedColorSize();
+
+    const colSize = +savedWidth || calculated
+    $('.paletteColor').css('width', colSize).css('height', colSize);
+}
+
+export function fixChatPosition(){
+    const paletteHeight = $('#palette').innerHeight();
+    $('#chat').css('bottom', paletteHeight+4);
 }

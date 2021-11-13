@@ -48,7 +48,7 @@ import revertIcon from '../img/toolIcons/revert.png'
 import template from './template';
 import me from './me';
 import { closestColor } from './utils/color';
-import { getOrDefault } from './utils/localStorage';
+import { getOrDefault, setLS } from './utils/localStorage';
 
 const mobile = globals.mobile;
 
@@ -225,7 +225,6 @@ class Clicker extends Tool {
         const screenX = e.clientX,
             screenY = e.clientY;
 
-        console.log('isUp', isUp)
         if(Math.abs(screenX-this.screenPos[0]) < 5 && Math.abs(screenY-this.screenPos[1]) < 5 && !isUp){
             return;
         }
@@ -343,7 +342,6 @@ class Protector extends Clicker {
         if (this.mousedown) return;
 
         super.down(e);
-        console.log('protedown')
 
         showProtected(); // force protect visibility
         this._mobileIsProtect = !getProtect(...this.lastPos);
@@ -1086,7 +1084,7 @@ class Grid extends Tool {
     toggle() {
         if (this.state == 0) this.show();
         else this.hide();
-        localStorage.setItem('enableGrid', (!!this.state).toString())
+        setLS('enableGrid', (!!this.state).toString())
     }
 
     show() {
@@ -1334,7 +1332,7 @@ class Paste extends Tool {
 }
 const paste = new Paste('paste', 'CTRL+' + 'V'.charCodeAt());
 
-let tempOpacity = parseFloat(getOrDefault('template.opacity', 0.5));
+let tempOpacity = parseFloat(getOrDefault('template.opacity', 0.5, true));
 
 const templateOp1 = new Tool('template 0/N opaq', 'O'.charCodeAt());
 templateOp1.on('down', () => {

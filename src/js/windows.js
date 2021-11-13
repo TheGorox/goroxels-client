@@ -14,11 +14,11 @@ import { game } from './config'
 import globals from './globals';
 import me from './me';
 import player from './player'
-import { apiRequest, fetchCaptcha, setPaletteRows, showProtected, solveCaptcha, toggleEmojis, togglePlaced, updateBrush, updateEmojis, updateMe } from './actions';
+import { apiRequest, fetchCaptcha, fixChatPosition, setPaletteColorsSize, showProtected, solveCaptcha, toggleEmojis, togglePlaced, updateBrush, updateEmojis, updateMe } from './actions';
 import toastr from 'toastr';
 import tools from './tools';
 import chat from './chat';
-import { get, getOrDefault, set } from './utils/localStorage';
+import { getLS, getOrDefault, setLS } from './utils/localStorage';
 import User from './user';
 import { htmlspecialchars } from './utils/misc';
 
@@ -191,7 +191,7 @@ export function keyBinds() {
                 toSave[tool.name] = tool.key;
             }
 
-            localStorage.setItem('keyBinds', JSON.stringify(toSave));
+            setLS('keyBinds', JSON.stringify(toSave));
         });
 
         const parsed = decodeKey(tool.key);
@@ -212,8 +212,7 @@ export function uiSettings() {
     if (!setWin.created) return;
 
     const table = generateTable([
-        [translate('colors size'), '<input type="range" min="16", max="64" step="0.01" id="colSize><div style="width:50px;"><div>'],
-        [translate('palette width'), '<input type="range" min="1", max="100" step="1" id="palSize"><div style="width:50px;"><div>'],
+        [translate('colors size'), '<input type="range" min="16", max="64" step="1" id="colSize"><div style="width:50px;"><div>'],
         [translate('hide emojis'), '<input type="checkbox" id="toggleEmojis">'],
         [translate('emoji list'), '<input type="text" id="emojiList">'],
         [`<button id="moreEmojis">${translate('super secret button')}</button>`],
@@ -221,31 +220,29 @@ export function uiSettings() {
     ]);
     $(setWin.body).append(table);
 
-    function palSizeChanged() {
-        const val = $('#palSize').val();
-        setPaletteRows(val);
-        localStorage.setItem('rowsRange', val);
-        $('#palSize+div').text(val);
+    function colorSizeChanged(){
+        const val = $('#colSize').val();
+        setPaletteColorsSize(val);
+        $('#colSize').next().text(val + 'px');
+        setLS('colorSize', val, true);
+        fixChatPosition();
     }
 
-    $('#colSize').on('change', e => {
+    const colSizeVal = getOrDefault('colorSize', 24, true);
+    $('#colSize').next().text(colSizeVal);
+    $('#colSize').val(colSizeVal)
+    $('#colSize').on('input', colorSizeChanged);
 
-    });
-
-    $('#palSize').val(+getOrDefault('rowsRange', 100));
-    $('#palSize').on('input', palSizeChanged);
-    palSizeChanged();
-
-    $('#toggleEmojis')[0].checked = get('hideEmojis') == 1;
+    $('#toggleEmojis')[0].checked = getLS('hideEmojis') == 1;
     $('#toggleEmojis').on('click', e => {
         const state = !e.target.checked;
-        set('hideEmojis', state ? 0 : 1);
+        setLS('hideEmojis', state ? 0 : 1);
         toggleEmojis(state);
     });
 
     $('#emojiList').val(getOrDefault('emojis', '🙁 🤔 😀 💚'));
     $('#emojiList').on('change', e => {
-        set('emojis', e.target.value);
+        setLS('emojis', e.target.value);
         updateEmojis(e.target.value.split(' '));
     })
 
@@ -260,7 +257,7 @@ export function uiSettings() {
     $('#togglePlaced')[0].checked = getOrDefault('hidePlaced', 1) == 0;
     $('#togglePlaced').on('click', e => {
         const show = e.target.checked;
-        set('hidePlaced', show ? 0 : 1);
+        setLS('hidePlaced', show ? 0 : 1);
         togglePlaced(show);
     });
 }
@@ -340,13 +337,13 @@ export function gameSettings() {
         if (+e.value < 0) e.value = 0;
 
         player.maxPlaced = +e.value;
-        localStorage.setItem('maxPlaced', player.maxPlaced)
+        setLS('maxPlaced', player.maxPlaced)
     });
 
     $('#disableChatColors').on('change', e => {
         const checked = e.target.checked
 
-        localStorage.setItem('disableColors', checked.toString());
+        setLS('disableColors', checked.toString());
 
         chat.setColors(!checked)
     })
@@ -355,7 +352,7 @@ export function gameSettings() {
         const value = parseInt(e.target.value, 10);
         if (isNaN(value) || value < 1) return;
 
-        localStorage.setItem('chatLimit', value.toString());
+        setLS('chatLimit', value.toString());
 
         game.chatLimit = value;
     })
@@ -363,7 +360,7 @@ export function gameSettings() {
     $('#lightGridCB').on('change', e => {
         const checked = e.target.checked;
 
-        localStorage.setItem('lightGrid', checked.toString());
+        setLS('lightGrid', checked.toString());
 
         tools.grid.isLight = checked;
     })
@@ -371,7 +368,7 @@ export function gameSettings() {
     $('#enableGridCB').on('change', e => {
         const checked = e.target.checked;
 
-        localStorage.setItem('enableGrid', checked.toString());
+        setLS('enableGrid', checked.toString());
 
         if (checked) tools.grid.show();
         else tools.grid.hide();
@@ -393,7 +390,6 @@ export async function captchaModal() {
         );
 
         help.children[0].onclick = captchaModal;
-        console.log(help.children[0])
 
         const [line] = $(`<div style="display:flex;justify-content:center">${translate('Captcha').toUpperCase()}:&nbsp;&nbsp;</div>`);
         line.appendChild(inp);

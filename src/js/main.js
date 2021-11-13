@@ -7,13 +7,15 @@ import Renderer from './Renderer';
 import { FXRenderer } from './fxcanvas';
 import player from './player';
 import ToolManager from './ToolManager';
-import { calculateColumnSize, initHalfmap } from './utils/misc';
+import { calculateColumnSize, getRecommendedColorSize, initHalfmap } from './utils/misc';
 
 import * as config from './config';
 import {
     updateMe,
     initInputs,
-    initOtherCoolFeatures
+    initOtherCoolFeatures,
+    fixChatPosition,
+    fixColorsWidth
 } from './actions';
 import { init as initTranslate } from './translate';
 import camera from './camera';
@@ -43,6 +45,9 @@ import camera from './camera';
         if (!globals.mobile) {
             calculateColumnSize();
         }
+
+        fixColorsWidth();
+        fixChatPosition();
     }
     
     window.oncontextmenu = function (e) {

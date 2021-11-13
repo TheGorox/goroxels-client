@@ -404,7 +404,6 @@ var colorManip = {
     },
 
     mciede1994mix(rgb1, lab2) {
-        console.log(1994)
         if (window.suck) {
             return colorManip.ciede1994(lab2, colorManip.rgb2lab(rgb1))
         } else {

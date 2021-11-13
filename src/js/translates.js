@@ -1,5 +1,5 @@
 import {
-    get as getls
+    getLS as getls
 } from './utils/localStorage'
 
 function getLang(){

@@ -1,13 +1,13 @@
 import Bucket from './Bucket';
 import globals from './globals';
-import { get, getOrDefault, set } from './utils/localStorage';
+import { getLS, getOrDefault, setLS } from './utils/localStorage';
 
 export default {
     x: 0,
     y: 0,
-    color: +getOrDefault('color1', -1),
+    color: +getOrDefault('color1', -1, true),
     brushSize: 1,
-    secondCol: +getOrDefault('color2', -1),
+    secondCol: +getOrDefault('color2', -1, true),
     id: -1,
     init(){
         this.switchColor(this.color, true);
@@ -25,13 +25,8 @@ export default {
         if(id !== -1){
             $('#col' + id).addClass('selected');
         }
-        
-        if(localStorage.palSize){
-            const size = +localStorage.palSize;
-            $('.selected').css('width', size+5).css('height', size+5);
-        }
 
-        set('color1', id);
+        setLS('color1', id, true);
     },
     switchSecondColor(id, initial){
         if(this.secondCol === id && !initial)
@@ -46,12 +41,7 @@ export default {
             $('#col' + id).addClass('selectedSecond');
         }
 
-        if(localStorage.palSize){
-            const size = +localStorage.palSize;
-            $('.selectedSecond').css('width', size+2).css('height', size+2);
-        }
-
-        set('color2', id);
+        setLS('color2', id, true);
     },
     swapColors(){
         const temp = this.color;
@@ -68,5 +58,5 @@ export default {
     },
     placed: [],
     maxPlaced: isNaN(+localStorage['maxPlaced']) ? 500 : +localStorage['maxPlaced'],
-    placedCount: +get('placedCount') || 0
+    placedCount: +getLS('placedCount', true) || 0
 }

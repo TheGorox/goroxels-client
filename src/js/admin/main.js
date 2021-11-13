@@ -199,7 +199,6 @@ async function initBackup() {
                 ch = canvas.height / chunkSize;
             for (let cy = 0; cy < ch; cy++) {
                 for (let cx = 0; cx < cw; cx++) {
-                    console.log(cx + offx, cy + offy)
                     text = `(${cx + offx}, ${cy + offy})`;
 
                     let x = (cx * chunkSize) + halfChunk,

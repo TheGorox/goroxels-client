@@ -1,12 +1,23 @@
-export function getOrDefault(key, defaultVal){
+import { canvasName } from "../config";
+
+export function getOrDefault(key, defaultVal, isLocal=false){
+    if(isLocal){
+        key = canvasName + '.' + key
+    }
     // NOTE: empty strings are falsy too
     return localStorage.getItem(key) || defaultVal
 }
 
-export function get(value){
-    return localStorage.getItem(value);
+export function getLS(key, isLocal=false){
+    if(isLocal){
+        key = canvasName + '.' + key
+    }
+    return localStorage.getItem(key);
 }
 
-export function set(key, value){
+export function setLS(key, value, isLocal=false){
+    if(isLocal){
+        key = canvasName + '.' + key
+    }
     return localStorage.setItem(key, value)
 }

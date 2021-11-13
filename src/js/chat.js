@@ -2,7 +2,7 @@ import { canvasName, game } from './config';
 import globals from './globals';
 import { translate as t_ } from './translate';
 import cssColors from './utils/cssColorsList'
-import { getOrDefault } from './utils/localStorage';
+import { getLS, getOrDefault, setLS } from './utils/localStorage';
 import { htmlspecialchars } from './utils/misc';
 
 // currently chat supports only one channel
@@ -25,7 +25,7 @@ class Chat {
 
         this.colorsEnabled = !JSON.parse(getOrDefault('disableColors', false));
 
-        this.muted = JSON.parse(localStorage.getItem('muted')) || [];
+        this.muted = JSON.parse(getLS('muted')) || [];
     }
 
     // mobile version of hide/show
@@ -155,6 +155,7 @@ class Chat {
     handleCommand(command) {
         let args = command.split(' ').slice(1);
 
+        // currently works shitty
         if (command.startsWith('/mute')) {
             const nick = args.join(' ');
             this.mute(nick);
@@ -175,7 +176,7 @@ class Chat {
         }
 
         this.muted.push(nick);
-        localStorage.setItem('muted', JSON.stringify(this.muted));
+        setLS('muted', JSON.stringify(this.muted));
 
         $('.messageNick').each((_, el) => {
             if(el.dataset.nick === nick){
@@ -195,7 +196,7 @@ class Chat {
         }
 
         this.muted.splice(index, 1);
-        localStorage.setItem('muted', JSON.stringify(this.muted));
+        setLS('muted', JSON.stringify(this.muted));
 
         $('.messageNick').each((_, el) => {
             if(el.dataset.nick === nick){

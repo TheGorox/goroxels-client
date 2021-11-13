@@ -197,10 +197,6 @@ export default class Window {
                     self.moveBy(movedX, movedY);
                 }
 
-                jQuery([deleteEl, deleteRange]).on('pointermove', () => {
-                    console.log('mo')
-                })
-
                 if (this.closeable) {
                     deleteEl.style.display = 'block';
                     deleteRange.style.display = 'block';

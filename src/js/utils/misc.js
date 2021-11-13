@@ -68,3 +68,13 @@ export function htmlspecialchars(text) {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 }
+
+export function getRecommendedColorSize(){
+    const max = 24;
+    const p = $('#palette');
+    // 14 is for palette padding 
+    let size = Math.floor((window.innerWidth-14)/p.children().length);
+    size = Math.min(size, max);
+
+    return size
+}

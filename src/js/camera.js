@@ -4,7 +4,7 @@ import {
     boardHeight
 } from './config'
 import EventEmitter from 'events';
-import { getOrDefault } from './utils/localStorage';
+import { getOrDefault, setLS } from './utils/localStorage';
 
 const camera = {
     x: null, y: null,
@@ -20,10 +20,10 @@ const camera = {
 
     init(){
         Object.assign(this, {
-            x: +getOrDefault('posX', 0),
-            y: +getOrDefault('posY', 0),
+            x: +getOrDefault('posX', 0, true),
+            y: +getOrDefault('posY', 0, true),
 
-            zoom: +getOrDefault('zoom', 1),
+            zoom: +getOrDefault('zoom', 1, true),
 
             minX: -boardWidth/2,
             minY: -boardHeight/2,
@@ -99,9 +99,9 @@ setInterval(() => {
         newY = camera.y,
         newZ = camera.zoom;
 
-    if(lastX != newX) localStorage.setItem('posX', newX);
-    if(lastY != newY) localStorage.setItem('posY', newY);
-    if(lastZ != newZ) localStorage.setItem('zoom', newZ);
+    if(lastX != newX) setLS('posX', newX, true);
+    if(lastY != newY) setLS('posY', newY, true);
+    if(lastZ != newZ) setLS('zoom', newZ, true);
 
     lastX = newX; lastY = newY; lastZ = newZ;
 }, 3000);
