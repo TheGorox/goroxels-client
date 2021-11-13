@@ -102,7 +102,7 @@ export function initInputs() {
 }
 
 function loadValues() {
-    const urlVal = getOrDefault('template.url', 'https://i.imgur.com/46fwf6C.png?width=80', true);
+    const urlVal = getOrDefault('template.url', 'https://i.imgur.com/4GQIMQ7.png', true);
     urlInput.val(urlVal);
 
     const xVal = getOrDefault('template.x', 0, true);
