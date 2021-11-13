@@ -33,7 +33,8 @@ import {
     placePixels,
     updateTemplate,
     updateBrush,
-    showProtected
+    showProtected,
+    changeSelector
 } from './actions'
 import { ROLE } from './constants';
 
@@ -339,7 +340,8 @@ class Protector extends Clicker {
     mouseup() { }
 
     down(e) {
-        if (this.mousedown) return;
+        if (this.mouseIsDown) return;
+        this.mouseIsDown = true;
 
         super.down(e);
 
@@ -446,6 +448,11 @@ class Mover extends Tool {
 
         this.mousedown = true;
 
+        // little workaround to keep any ui text
+        // unselected while canvas moves
+        // guess it's uneffictive
+        changeSelector('#ui>div>*', { 'pointer-events': 'none' })
+
         if (!mobile) {
             this.downPos = this.lastPos = [e.clientX, e.clientY]
         }
@@ -454,6 +461,7 @@ class Mover extends Tool {
         if (e.ctrlKey) return;
 
         this.mousedown = false;
+        changeSelector('#ui>div>*', { 'pointer-events': 'all' })
 
         if (!mobile && this.moveThresold() && e.type !== 'mouseleave') {
             // right/middle/anything

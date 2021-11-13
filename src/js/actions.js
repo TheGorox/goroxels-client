@@ -349,7 +349,7 @@ export function setPaletteColorsSize(size) {
 }
 
 // you can't just change css se..
-function changeSelector(selector, obj) {
+export function changeSelector(selector, obj) {
     let el;
     if (!(el = document.getElementById('REPLACE-' + selector))) {
         el = document.createElement('style');

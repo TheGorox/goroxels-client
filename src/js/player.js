@@ -5,13 +5,18 @@ import { getLS, getOrDefault, setLS } from './utils/localStorage';
 export default {
     x: 0,
     y: 0,
-    color: +getOrDefault('color1', -1, true),
+    color: -1,
     brushSize: 1,
-    secondCol: +getOrDefault('color2', -1, true),
+    secondCol: -1,
     id: -1,
     init(){
+        this.loadColors();
         this.switchColor(this.color, true);
         this.switchSecondColor(this.secondCol, true);
+    },
+    loadColors(){
+        this.color = +getOrDefault('color1', -1, true);
+        this.secondCol = +getOrDefault('color2', -1, true);
     },
     switchColor(id, initial=false){
         if(this.color === id && !initial)
