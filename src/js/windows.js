@@ -220,7 +220,7 @@ export function uiSettings() {
     ]);
     $(setWin.body).append(table);
 
-    function colorSizeChanged(){
+    function colorSizeChanged() {
         const val = $('#colSize').val();
         setPaletteColorsSize(val);
         $('#colSize').next().text(val + 'px');
@@ -454,11 +454,12 @@ export function toolsWindow() {
         if (!win.created) return;
 
         const table = generateTable([
-            `<input type="text" placeholder="nickname" id="userSearchText" max="32" style="width:250px"> ${translate('OR')} ` +
-                '<input type="text" placeholder="id" id="userSearchId" max="32" style="width:50px">' +
-                `<input type="checkbox" id="searchIsBanned"><label for="searchIsBanned">${translate('banned?')}</label>`,
+            [`<input type="text" placeholder="nickname" id="userSearchText" max="32" style="width:250px"> ${translate('OR')} `+
+            '<input type="text" placeholder="id" id="userSearchId" max="32" style="width:50px">'+
+            `<input type="checkbox" id="searchIsBanned"><label for="searchIsBanned">${translate('banned?')}</label>`],
             ['<div id="searchUsersBody">']
         ]);
+        console.log(table)
         $(win.body).append(table);
 
         const input = $('#userSearchText');
@@ -619,45 +620,45 @@ export function help() {
     helpWin.body.style.fontSize = '15px';
 
     // TODO move this to translations
-    const intro = createCollapsibleBlock(translate('Вступление'), 
-    `${translate('Goroxels - это мультиплеерная пиксельная рисовалка почти без задержки!')}<br>
-    ${translate('Добавлены различные инструменты и фичи для упрощения рисования.')}<br>
-    ${translate('На главном полотне может рисовать каждый, но зарегистрированным пользователям даются преимущества в виде чата, уменьшенной задержки между пикселями и не только.')}`, false);
+    const intro = createCollapsibleBlock(translate('Introduciton'),
+    `${translate('Goroxels is a multiplayer pixel game with no cooldown! (ok, almost)')}<br>
+    ${translate('There are so many tools for make drawing more comfortable!')}<br>
+    ${translate('Any Guest of this site can draw, but to get some features (ability to chat with other players, more lower cooldown) you should be registered.')}`, false);
 
-    const howto = createCollapsibleBlock(translate('Как играть?'), 
-    `${translate('Очень просто: как и в любой рисовалке, выбираешь цвет в палитре(кликом по нему или с помощью специального инструмента Пипетка), и кликаешь по полотну чтобы поставить пиксель.')}<br>
-    ${translate('Можно рисовать сразу много пикселей, но как это сделать будет рассказано в разделе инструментов.')}`);
+    const howto = createCollapsibleBlock(translate('How to play?'),
+    `${translate('Very simple: you should pick color you need from palette (with pipette or just click) and place the pixel on canvas with LMB.')}<br>
+    ${translate('You can use in-game clicker to place more pixels at time.')}`);
 
-    const tools = createCollapsibleBlock(translate('Инструменты'), 
-    `${translate('Для упрощения игрового процесса было добавлено множество инструментов, вот несколько из них:')}<br><br>
-    ${translate('Кликер. Для того, чтобы рисовать кликером, зажми пробел(клавиши всех инструментов можно поменять) в месте где хочешь начать рисовать, и води как кисточкой по полотну.')}<br>
-    ${translate('Со временем кликер перестанет рисовать непрерывно - из-за введённой в игру задержки рисования. Она нужна чтобы минимизировать ущерб от ботов и вандалов.')}<br>
-    ${translate('У зарегистрированных пользователей, а также повышенных до Доверенного задержка значительно меньше.')}<br>
-    ${translate('Быстро переключать цвета можно с помощью [A] (пред. цвет) и [S] (след. цвет).')}<br>
-    ${translate('Также цвет можно подобрать с полотна клавишей [C].')}<br>
-    ${translate('Также можно контролировать размер кисти (недоступно Гостям) с помощью квадратных скобок, как в Photoshop.')}<br>
-    ${translate('Для рисования ровных линий был добавлен инстумент Линия [Shift].')}<br>
-    ${translate('А также если нужно залить цветом определённую область - существует инструмент Заливка [F]. Зажатие покажет превью заливки, чтобы проверить, не будет ли утечек, а отпускание клавиши начнёт заливку.')}<br>
-    ${translate('Если нужно быстро сбросить цвет(а), нажми правой кнопкой мыши на полотне.')}<br>
-    ${translate('Включить сетку пикселей можно на клавишу [G].')}<br>
-    ${translate('На [Z] (по желанию можно поменять на Ctrl+Z) можно отменить случайно поставленный пиксель. Если зажать, то много сразу (лимит сохранённых пикселей изменяется в Настройках Игры)')}<br>`);
+    const tools = createCollapsibleBlock(translate('Tools'),
+    `${translate('Tools Goroxels have:')}<br><br>
+    ${translate('Clicker. You need to hold whitespace and move your mouse to use it.')}<br>
+    ${translate('In the future, it will stop to place pixels continuously to protect arts.')}<br>
+    ${translate('Registred and Trusted users can draw with more lower cooldown than Guest users.')}<br>
+    ${translate('You can quickly switch colors with [A] (previous color) и [S] (next color).')}<br>
+    ${translate('You can also pick color from the canvas using pipette with [C].')}<br>
+    ${translate('And so, brush size can be controlled (unavailable to Guests) with help of [ ] keys.')}<br>
+    ${translate('Straight lines are so important to make art. You can use them with help of your mouse and [Shift].')}<br>
+    ${translate('And so, the most important tool - Floodfill. [F], it helps so much to fill area with color. Hold this key for preview. If everything suits you, click [F] again.')}<br>
+    ${translate('If you need to quickly reset color(s), click RMB on canvas.')}<br>
+    ${translate('For grid use [G].')}<br>
+    ${translate('If you placed the pixel(s) wrong, use [Z] (you can switch it to Ctrl+Z) for rollback. Keep holding Z to rollback all your wrong pixels (you can change amount of max saved pixels with Settings).')}<br>`);
 
-    const tools2 = createCollapsibleBlock(translate('Остальные инструменты'), 
-    `${translate('Для продвинутых пользователей добавлена поддержка мультицвета - это когда кисть рисует сразу двумя цветами, чередуя их.')}<br>
-    ${translate('Подобрать второй цвет можно с помощью [Alt+C]. Если случайно перепутал порядок цветов - не беда: нажми [X], и цвета поменяются местами.')}<br>
-    ${translate('Также есть возможность скрыть верхнее меню [L], чат [K], и даже весь UI сразу: [;].')}<br>
-    ${translate('Можно вставить картинку через [Ctrl+V] (только для зарегистрированных); вероятно, поддержка этого инструмента будет ограничена до Модератора.')}<br>
-    ${translate('Клавиша [U] добавляет координаты под курсором в поле ввода чата. Координаты в чате кликабельны(по клику можно перейти на место)')}<br>
-    ${translate('Для управления шаблоном введены инструменты переключения прозрачности с 0 до N(установленная в настройках шаблона прозрачность) [O] или с 1 до N [P].')}<br>
-    ${translate('Остальные инструменты либо тестовые, либо доступны только Модераторам.')}`);
+    const tools2 = createCollapsibleBlock(translate('Other tools'),
+    `${translate('Multicolour support - brush can draw with a "chess style".')}<br>
+    ${translate('Second color can be picked with [Alt+C]. If you picked colors in a wrong order, it is not a big problem - press [X] to reverse it.')}<br>
+    ${translate('Hide a upper menu with [L], hide the chat with [K], and hide all an UI: [;].')}<br>
+    ${translate('You can paste your picture on the canvas using [Ctrl+V] (only for Registered users); maybe in the future this tool can only be used by Moderators.')}<br>
+    ${translate('Click [U] to send coords to the chat. Coords in the chat are able to click.')}<br>
+    ${translate('Template can be managed with opacity switching tools [O] (your opacity (X) to 0) or from your opacity to max opacity [P].')}<br>
+    ${translate('Other tools are tools for testing or can be only used by Moderators.')}`);
 
-    const template = createCollapsibleBlock(translate('Шаблон'), 
-    `${translate('Для рисования по шаблону специально была добавлена поддержка наложений. Чтобы изображение появилось поверх полотна, нужно ввести ссылку на него в "URL изображения" колонки ШАБЛОН.')}<br>
-    ${translate('Чтобы не возникло проблем с загрузкой, желательно предварительно залить картинку на специальный хостинг, например <a href="//imgur.com">imgur.com</a>.')}<br>
-    ${translate('Изменять координаты можно вручную (X и Y поля в ШАБЛОНе), либо перетаскивая изображение прямо на полотне, зажав Ctrl.')}<br>
-    ${translate('Для упрощения рисования по шаблону также сделан <a href="/convert">Конвертер</a>. В нём две основные функции: конвертация в палитру и конвертация в узор.')}<br>
-    ${translate('Рекомендованный порядок действий: сначала сконвертировать в палитру (можно вставлять ссылки, открывать из файла, либо из буфера обмена), затем скопировать готовую картинку и вставить в узорный конвертер. Когда шаблон будет готов, нажми "загрузить на imgur" и скопируй полученную ссылку в "URL изображения". Увидишь, с ним куда проще.')}<br>
-    ${translate('Если ссылка красная, значит изображение слишком большое. Попробуй рисовать по частям.')}`);
+    const template = createCollapsibleBlock(translate('Template'),
+    `${translate('Yes, in the Goroxels you can draw by following template! Put image on the canvas with "image URL".')}<br>
+    ${translate('When loading a picture, there are can be some troubles. I reccomend to put your picture on <a href="//imgur.com">imgur.com</a>.')}<br>
+    ${translate('You can change coordinates by yourself (X and Y), or with help of a dragging (hold [Ctrl]).')}<br>
+    ${translate('Convert images to the Goroxels palette with <a href="/convert">Converter</a>. You can also convert image and draw, using a pattern convert!')}<br>
+    ${translate('Recommendations: first, convert to the palette, copy converted image and paste it in the pattern converter. When it ready, click "upload on imgur" and copy link you get to the "image URL". Patterns will make your drawing process more relaxing and enjoyable!')}<br>
+    ${translate('If url is red, image you picked is so big. Try to cut your image with parts.')}`);
 
 
     $(helpWin.body).append(intro, howto, tools, tools2, template);
