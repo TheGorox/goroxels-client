@@ -23,22 +23,19 @@ export default class User {
     static async CreateWindow(info, tempId) {
         const win = new Window({
             center: true,
-            title: `${info.name || t_('PLAYER') + ' ' + info.id}`
+            title: `${info.name || t_('PLAYER') + ' ' + (tempId||info.id)}`
         });
 
         if (info.ip) {
-            const ip = info.ip;
             if (info.cc && info.cc !== 'XX') {
                 // adds a flag near the ip address
                 info._ip = info.ip;
 
                 const cc = info.cc;
                 info.ip += ` [${cc}]`;
-                info.ip += `<img src="${location.protocol}//www.countryflags.io/${cc}/flat/16.png" style="margin-bottom:-5px;margin-left:1px;">`;
+                info.ip += `<img src="${location.protocol}//www.countryflagicons.com/FLAT/16/${cc}.png" style="margin-bottom:-5px;margin-left:1px;">`;
 
                 delete info['cc'];
-            } else {
-                info.ip = 'localhost'
             }
         }
 
