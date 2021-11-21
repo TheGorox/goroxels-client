@@ -14,8 +14,19 @@ import { ROLE } from './constants';
 import { apiRequest } from './actions';
 import IP from './utils/ip';
 import { translate as t_ } from './translate';
+import cssColors from './utils/cssColorsList'
 
 const usersContainer = $('#usersTable');
+
+function pad(pad, str, padLeft) {
+    if (typeof str === 'undefined')
+        return pad;
+    if (padLeft) {
+        return (pad + str).slice(-pad.length);
+    } else {
+        return (str + pad).substring(0, pad.length);
+    }
+}
 
 export default class User {
     // create user window from given object
@@ -48,7 +59,8 @@ export default class User {
             info.role = `<select type="role">${str}<select>`
         }
 
-        let infoArr = Object.keys(info).map(key => [key, info[key]]), misc = [];
+        let infoArr = Object.keys(info).map(key => [key, info[key]]),
+            misc = [];
         infoArr = infoArr.filter(x => !x[0].startsWith('_')); // for shit like _ip
 
         if (me.role >= ROLE.MOD) {
@@ -95,7 +107,7 @@ export default class User {
             globals.socket.sendAlert(tempId, val);
         });
 
-        $('.banByIp', win.body).on('click', async () => {
+        $('.banByIp', win.body).on('click', async() => {
             const ip = info._ip;
             if (!ip) return toastr.error(t_('No ip!'))
 
@@ -106,20 +118,59 @@ export default class User {
         });
     }
 
+    parseColors(str) {
+        // colors should be formatted like: [RED]test or [#FF0000]te[]st
+
+        let colorEntries = 0;
+
+        let regIter = str.matchAll(/\[(#?[A-Z0-9]+)*?\]/gi);
+        while (true) {
+            let {
+                value: entry,
+                done
+            } = regIter.next();
+            if (done) break;
+
+            let color = entry[1];
+
+            if (color) {
+                if (color.startsWith('#')) {
+                    color = pad(color.slice(-1).repeat(6 + 1), color);
+                } else if (!cssColors[color]) continue;
+
+                str = str.replace(entry[0],
+                    `<span class="name" style="color:${color}">`);
+                colorEntries++;
+            } else { // empty braces
+                if (colorEntries > 0) {
+                    str = str.replace(entry[0], '</span>');
+                    colorEntries--;
+                } else {
+                    // "[" and "]"
+                    str = str.replace(entry[0], '&#91;&#93;');
+                }
+            }
+        }
+
+        if (colorEntries > 0) str += '</span>'.repeat(colorEntries);
+
+        return str
+    }
+
 
     constructor(name, id, userId, registered) {
-        if (!name) name = 'ID ' + id;
+            if (!name) name = 'ID ' + id;
 
-        this.name = name;
-        this.id = id;
-        this.userId = userId;
+            this.name = this.parseColors(name);
+            this.id = id;
+            this.userId = userId;
 
-        this.online = true;
+            this.online = true;
 
-        this.registered = registered;
+            this.registered = registered;
 
-        this.element = $(
-            `<tr class="tableRow">
+            this.element = $(
+                    `<tr class="tableRow">
                 <td title="id ${id}" class="user">
                     ${`<button class="userInfoBtn"><img src="${userImg}"></button>`}
                     <span class="name">${name}</span>
