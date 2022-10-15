@@ -12,6 +12,8 @@ export let
     boardWidth, boardHeight,
     palette
 
+let downloaded = false;
+
 export let
     // a palette for fast rendering
     bgrPalette, hexPalette,
@@ -19,7 +21,8 @@ export let
     cooldown;
 
 export const game = {
-    chatLimit: parseInt(getOrDefault('chatLimit', 100), 10)
+    chatLimit: parseInt(getOrDefault('chatLimit', 100), 10),
+    showProtected: false
 }
 
 export let argbToId = {};
@@ -56,5 +59,15 @@ export async function download() {
         boardChunkHei = canvasCfg.boardHeight,
         cooldown = canvasCfg.cooldown;
 
-    Array.from(bgrPalette.values()).forEach((argb, i) => argbToId[argb] = i)
+    Array.from(bgrPalette.values()).forEach((argb, i) => argbToId[argb] = i);
+
+    downloaded = true;
+    toCall.forEach(f => f());
+    toCall = [];
+}
+
+let toCall = [];
+export function callOnLoad(cb){
+    if(downloaded) return cb();
+    toCall.push(cb);
 }

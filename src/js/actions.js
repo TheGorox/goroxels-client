@@ -1,6 +1,7 @@
 import me from './me';
 import {
-    cooldown, palette
+    canvasName,
+    cooldown, game, hexPalette, palette
 } from './config';
 import player from './player';
 import {
@@ -29,13 +30,18 @@ import {
     uiSettings,
     gameSettings,
     toolsWindow,
-    help
+    help,
+    authWindow,
+    onlineViewWindow
 } from './windows'
 import { ROLE, ROLE_I } from './constants'
 import chat from './chat';
 import Window from './Window';
 import { translate as t_ } from './translate';
-import { getRecommendedColorSize } from './utils/misc';
+import { getPathsafeDate, getRecommendedColorSize } from './utils/misc';
+import { patterns } from './convert/patterns';
+import { isDarkColor } from './utils/color';
+import Chunk from './Chunk';
 
 export async function apiRequest(path, config = {}) {
     // handle json body of request
@@ -64,26 +70,22 @@ export async function apiRequest(path, config = {}) {
     return response
 }
 
-async function fetchMe() {
-    const response = await apiRequest('/me');
-    return await response.json();
-}
-
 export async function updateMe() {
-    const user = await fetchMe();
+    await me.load();
 
-    me.update(user);
     player.updateBucket(getMyCooldown());
-    if (user.registered) {
+    if (me.registered) {
         chatInput.removeAttr('disabled');
         chatInput.val('');
 
-        $('#chatNick').text(user.name);
+        $('#chatNick').text(me.name);
+        $('.authBtn').hide();
     } else {
         chatInput.attr('disabled');
         chatInput.val(t_('login to chat'));
 
         $('#chatNick').text('CHAT');
+        $('.authBtn').show();
     }
 }
 
@@ -183,13 +185,14 @@ function initButtons() {
     $('#uiSettings').on('click', uiSettings);
     $('#canvasSettings').on('click', gameSettings);
     $('#toolsB').on('click', toolsWindow);
+    $('.authBtn').on('click', authWindow);
 }
 
 function initChat() {
     $(document).on('keydown', e => {
         if (e.key !== 'Enter') return;
 
-        if ($('#chatInput').is(':focus')) {
+        if ($('#chatInput').is(':focus') || globals.mobile) {
             // send if focused
             const message = chatInput.val();
             if (!message.length)
@@ -204,6 +207,7 @@ function initChat() {
         }
     });
 
+    initChatHeightWorkaround();
 }
 
 export function placePixels(pixels, store = true) {
@@ -221,7 +225,7 @@ export function placePixel(x, y, col, store = true) {
     const oldCol = globals.chunkManager.getChunkPixel(x, y),
         isProtected = globals.chunkManager.getProtect(x, y);
 
-    if (oldCol !== col && (!isProtected || me.role === ROLE.ADMIN) && globals.socket.connected) {
+    if (oldCol !== col && (!isProtected || me.role >= ROLE.MOD) && globals.socket.connected) {
         if (store) {
             player.placed.push([x, y, globals.chunkManager.getChunkPixel(x, y)]);
 
@@ -232,18 +236,16 @@ export function placePixel(x, y, col, store = true) {
 
         globals.chunkManager.setChunkPixel(x, y, col);
         globals.socket.sendPixel(x, y, col);
-        globals.renderer.needRender = true;
-        globals.fxRenderer.needRender = true;
 
         globals.socket.pendingPixels[x + ',' + y] = setTimeout(() => {
             globals.chunkManager.setChunkPixel(x, y, oldCol);
             globals.renderer.needRender = true;
         }, 3000)
     } else {
-        if (isProtected) {
+        if (isProtected && me.role < ROLE.MOD) {
             toastr.error(t_('This pixel is protected.'), t_('Error!'), {
                 preventDuplicates: true,
-                timeOut: 5000
+                timeOut: 750
             })
         }
     }
@@ -281,11 +283,12 @@ export function toggleEverything() {
     //     }
     // })
     $('#ui').fadeToggle(100);
+    fixChatPosition();
 }
 
 export function showProtected(show = true) {
+    game.showProtected = show;
     globals.chunkManager.chunks.forEach(chunk => {
-        chunk.showProtected = show;
         chunk.needRender = true;
     });
     globals.renderer.needRender = true;
@@ -344,7 +347,7 @@ export function setPaletteRows(rows) {
     $('#palette').css('max-width', width);
 }
 export function setPaletteColorsSize(size) {
-    if(!size) return;
+    if (!size) return;
     $('.paletteColor').css('width', size).css('height', size);
 }
 
@@ -395,20 +398,20 @@ export function updateBrush(size) {
     $('#brushSizeCounter').text(size - 1);
 }
 
-export function togglePlaced(state){
+export function togglePlaced(state) {
     state ? $('#placedPixels').show() : $('#placedPixels').hide();
 }
 
-export function updatePlaced(count, handCount){
+export function updatePlaced(count, handCount) {
     // FIXME: move it to interval?
     $('#placedPixels').text(count);
-    if(handCount)
+    if (handCount)
         $('#placedPixels').attr('title', handCount);
 }
 
 let lastPlaced = player.placedCount;
 setInterval(() => {
-    if(lastPlaced !== player.placedCount){
+    if (lastPlaced !== player.placedCount) {
         setLS('placedCount', player.placedCount, true);
         lastPlaced = player.placedCount;
     }
@@ -422,12 +425,12 @@ function initUISettings() {
     updatePlaced(getLS('placedCount', true));
 }
 
-function initMobileChatToggle(){
+function initMobileChatToggle() {
     $('.showChat').on('click', () => chat.mobileShow());
     $('#hideChat').on('click', () => chat.mobileHide());
 }
 
-function initHelpButton(){
+function initHelpButton() {
     $('.helpBtn').on('click', () => {
         help()
     })
@@ -441,9 +444,11 @@ export function initOtherCoolFeatures() {
     initMobileChatToggle();
     initHelpButton();
     player.init();
+    initCoordsClick();
+    initOnlineViewer();
 }
 
-export function fixColorsWidth(){
+export function fixColorsWidth() {
     const savedWidth = getLS('colorSize', true);
     const calculated = getRecommendedColorSize();
 
@@ -451,7 +456,148 @@ export function fixColorsWidth(){
     $('.paletteColor').css('width', colSize).css('height', colSize);
 }
 
-export function fixChatPosition(){
+
+
+function initCoordsClick() {
+    globals.elements.coords.addEventListener('click', function () {
+        globals.elements.chatInput.value += this.innerText;
+        globals.elements.chatInput.focus();
+    })
+}
+
+export function makeScreenshot() {
+    const canvas = globals.chunkManager.dumpAll();
+
+    const link = document.createElement('a');
+    link.download = `GX ${canvasName} ${getPathsafeDate()}.png`;
+    link.href = canvas.toDataURL()
+    link.click();
+}
+
+// beta and probably temprorary
+// purposely not optimised
+export function showPatternsOnPalette() {
+    unloadPalettePatterns();
+
+    palette.forEach(([r, g, b], i) => {
+        const pat = patterns[i % patterns.length];
+
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = 14;
+        const ctx = canvas.getContext('2d');
+
+        ctx.fillStyle = hexPalette[i];
+
+        for (let i = 0; i < 7 * 7; i++) {
+            if (!pat[i]) continue;
+            const x = i % 7;
+            const y = i / 7 | 0;
+
+            ctx.fillRect(x * 2, y * 2, 2, 2);
+        }
+
+        function toI(x, y) {
+            return (x + y * 14) * 4;
+        }
+
+        // draw contour
+        let imd = ctx.getImageData(0, 0, 14, 14).data;
+        if (isDarkColor(r, g, b)) {
+            ctx.fillStyle = 'white';
+            let coords = [];
+            for (let x = 0; x < 14; x++) {
+                for (let y = 0; y < 14; y++) {
+                    if (imd[toI(x, y) + 3]) continue
+
+                    const top = imd[toI(x, y - 1) + 3];
+                    const bottom = imd[toI(x, y + 1) + 3];
+                    const left = imd[toI(x - 1, y) + 3];
+                    const right = imd[toI(x + 1, y) + 3];
+
+                    const leftTop = imd[toI(x - 1, y - 1) + 3];
+                    const rightTop = imd[toI(x + 1, y - 1) + 3];
+                    const leftBottom = imd[toI(x - 1, y + 1) + 3];
+                    const rightBottom = imd[toI(x + 1, y + 1) + 3];
+
+                    if (top || bottom || left || right ||
+                        leftTop || rightTop || leftBottom || rightBottom) {
+                            ctx.fillRect(x, y, 1, 1);
+                    }
+                }
+            }
+        }
+
+
+        imd = ctx.getImageData(0, 0, 14, 14).data;
+        ctx.fillStyle = 'black';
+        for (let i = 0; i < 14 * 14; i++) {
+            if (!imd[i * 4 + 3])
+                ctx.fillRect(i % 14, i / 14 | 0, 1, 1)
+        }
+
+
+        const dataurl = canvas.toDataURL();
+        const img = document.createElement('img');
+        img.src = dataurl;
+        img.style.cssText =
+            `position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        image-rendering: pixelated;
+        width: inherit`;
+        $(`#col${i}`).append(img);
+    })
+}
+
+export function unloadPalettePatterns() {
+    $('.paletteColor>img').remove();
+}
+
+export function removeOldKeybinds(){
+    try{
+        const str = getLS('keyBinds');
+        const json = JSON.parse(str);
+        for(let bind of Object.values(json)){
+            let key = bind.split('+').slice(-1);
+            key = +key;
+            if(!isNaN(key)){
+                localStorage.removeItem('keyBinds');
+                return
+            }
+        }
+    }catch{}
+}
+
+function initOnlineViewer(){
+    $('#onlineColumn .columnHeader').on('click', async () => {
+        let json;
+        try {
+            const resp = await fetch('/api/online');
+            json = await resp.json();
+        } catch (e) {
+            toastr.error(e);
+            return
+        }
+        
+        onlineViewWindow(json);
+    });
+}
+
+function initChatHeightWorkaround(){
+    // -webkit-fill-available does not work since
+    // the best way to define height that i know 
+    // for the moment is through the script
+
+    function fixChatHeight(){
+        document.documentElement.style.setProperty('--gorox-chat-height', $(window).height() + 'px');
+    }
+
+    $(window).on('resize', fixChatHeight);
+    fixChatHeight();
+}
+
+export function fixChatPosition() {
     const paletteHeight = $('#palette').innerHeight();
-    $('#chat').css('bottom', paletteHeight+4);
+    $('#chat').css('bottom', paletteHeight + 4);
 }

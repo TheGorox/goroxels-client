@@ -1,6 +1,7 @@
 import {
     chunkSize,
-    bgrPalette
+    bgrPalette,
+    game
 } from './config'
 
 export default class Chunk{
@@ -28,7 +29,6 @@ export default class Chunk{
         this.pView = new Uint32Array(this.pImgData.data.buffer);
 
         this.needRender = true;
-        this.showProtected = false;
 
         this.fromBuffer(buffer);
     }
@@ -38,7 +38,7 @@ export default class Chunk{
             this.needRender = false;
             this.ctx.putImageData(this.imgData, 0, 0);
 
-            if(this.showProtected){
+            if(game.showProtected){
                 this.ctx.globalAlpha = 0.5;
 
                 this.pCtx.putImageData(this.pImgData,0,0);

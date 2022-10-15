@@ -631,17 +631,17 @@ function startPaletteConverter(url) {
 
         let startTime = Date.now();
         const progressBar = $('#palLB>.barProgress');
-        progressBar.parent().parent().removeClass('hidden');
+        progressBar.parent().parent().removeClass('opaque');
         palUtils.converterInterval = setImmediate(function rec() {
             let loaded = convGen.next();
 
             if (loaded.done) {
-                progressBar.parent().parent().addClass('hidden');
+                progressBar.parent().parent().addClass('opaque');
                 progressBar.css('width', 0);
                 ctx.putImageData(imgData, 0, 0);
                 onDone(canvas, 'palOut',
                     () => {
-                        toastr.info(`${t('Done in')} ${(Date.now() - startTime) / 1000} ${s}`);
+                        toastr.info(`${t('Done in')} ${(Date.now() - startTime) / 1000}${t('s.')}`);
                     });
             } else {
                 let perc = loaded.value*100;
@@ -954,8 +954,13 @@ async function onDone(canvas, convClass, callback) {
         try {
             const link = await upload(canvas.toDataURL().split(",")[1]);
             const isPNG = link.endsWith('png');
+            if(!isPNG) {
+                toastr.warn('JPEG!!!');
+                throw new Error;
+            }
+
             $(`#${convClass} .imgurUrl`).html(
-                `<span style="color:${isPNG ? 'rgb(0, 190, 0)' : 'rgb(249, 141, 141)'}">${link}${convClass === 'patOut' ? `?width=${canvas.width / 7}` : ''}</span>`
+                `<span style="color:rgb(0, 190, 0)">${link}${convClass === 'patOut' ? `?width=${canvas.width / 7}` : ''}</span>`
             )
         } catch {
             const text = t('Imgur upload failed, try upload manually and add this to a link:') +

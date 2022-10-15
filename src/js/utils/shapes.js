@@ -29,6 +29,8 @@ export default {
         }
         if (reverseFlag) pointArr.reverse();
 
+        pointArr.reverse();
+
         return pointArr;
     },
 

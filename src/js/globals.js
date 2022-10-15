@@ -25,6 +25,7 @@ export default {
         online: $('#onlineCounter')[0],
         coords: $('#coords')[0],
         topMenu: $('#topMenu')[0],
-        topMenuContent: $('#topMenu>.content')[0]
+        topMenuContent: $('#topMenu>.content')[0],
+        chatInput: $('#chatInput')[0]
     }
 }

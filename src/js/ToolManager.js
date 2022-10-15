@@ -11,8 +11,10 @@ import {
     stringifyKeyEvent,
     decodeKey
 } from './utils/misc';
+import { getLS, setLS } from './utils/localStorage';
+import me from './me';
 
-const coords = document.getElementById('coords');
+const coords = globals.elements.coords;
 
 function updatePlayerCoords(clientX, clientY) {
     let [newX, newY] = screenToBoardSpace(clientX, clientY);
@@ -40,10 +42,24 @@ export default class ToolManager extends EventEmitter {
         this.tool = tools.mover;
 
         this._keyBinds = {};
+        this._colorBinds = {};
         this.activeTools = {};
 
         this.addTools();
+        this.loadBinds();
         this.initEvents();
+
+        me.callOnLoaded(this.filterTools.bind(this));
+    }
+
+    filterTools() {
+        Object.keys(this.tools).forEach(name => {
+            if (this.tools[name].requiredRole > me.role) {
+                if (isMobile) {
+                    $(`#tool_${name}`).remove();
+                }
+            }
+        })
     }
 
     addTools() {
@@ -57,6 +73,7 @@ export default class ToolManager extends EventEmitter {
 
                 let el = document.createElement('div');
                 el.classList = 'toolContainer';
+                el.id = `tool_${name}`;
                 let img = document.createElement('img');
                 img.className = 'toolIcon';
                 img.src = tool.icon;
@@ -77,7 +94,8 @@ export default class ToolManager extends EventEmitter {
                 if (tool.name === 'mover')
                     choose.apply(this);
             } else {
-                this._keyBinds[tool.key] = tool;
+                if (player)
+                    this._keyBinds[tool.key] = tool;
             }
         })
 
@@ -116,6 +134,7 @@ export default class ToolManager extends EventEmitter {
                 em.on(realEvent, e => {
                     let tool = this.tool;
                     if (e && e.gesture) {
+                        this.tool.emit('_gesture');
                         tool = this.tools.mover;
                     }
                     if (!tool) return
@@ -178,7 +197,7 @@ export default class ToolManager extends EventEmitter {
                         continue;
 
                     const key = decodeKey(tool2.key);
-                    if (key.keyCode === e.keyCode) {
+                    if (key.code === e.code) {
                         tool2.emit('up', e)
                     }
                 }
@@ -220,5 +239,38 @@ export default class ToolManager extends EventEmitter {
 
         tool.key = key;
         this._keyBinds[key] = tool
+    }
+
+    loadBinds() {
+        const str = getLS('keyBinds');
+        let newBinds;
+        try {
+            newBinds = JSON.parse(str);
+            if (!newBinds)
+                return;
+        } catch {
+            toastr.error('Error on parsing key binds from local storage');
+            localStorage.removeItem('keyBinds');
+            return
+        }
+
+        let toolname;
+        for (let key of Object.keys(newBinds)) {
+            if (toolname = this.findByName(key))
+                this.changeKey(this.tools[toolname], newBinds[key]);
+        }
+    }
+
+    findByName(name) {
+        const keys = Object.keys(this.tools);
+        return keys.find(key => this.tools[key].name === name)
+    }
+
+    initColorBinds(){
+
+    }
+
+    loadColorBinds(){
+
     }
 }

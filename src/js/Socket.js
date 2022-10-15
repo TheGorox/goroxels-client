@@ -57,7 +57,7 @@ export default class Socket extends EventEmitter {
 
         this.socket.onclose = () => {
             this.emit('closed');
-            Object.values(globals.users).forEach(u => u.destroy());
+            Object.values(globals.users).forEach(u => u.close(u.id));
 
             setTimeout(() => {
                 // TODO modal or toastr warning
@@ -110,9 +110,17 @@ export default class Socket extends EventEmitter {
                     registered
                 } = decoded;
 
-                if (globals.users[id]) globals.users[id].destroy();
+                let sameUser;
+                if(name){
+                    sameUser = Object.values(globals.users).find(u => u.name === name);
+                }
 
-                globals.users[id] = new User(name, id, userId, registered);
+                if(sameUser){
+                    globals.users[id] = sameUser;
+                    sameUser.newConnection(id);
+                }else{
+                    globals.users[id] = new User(name, id, userId, registered);
+                }
 
                 break
             }
@@ -120,7 +128,7 @@ export default class Socket extends EventEmitter {
             case STRING_OPCODES.userLeave: {
                 const id = decoded.id;
 
-                if (globals.users[id]) globals.users[id].destroy();
+                if (globals.users[id]) globals.users[id].close(id);
 
                 break
             }
@@ -202,6 +210,8 @@ export default class Socket extends EventEmitter {
                 }
 
                 this.emit('place', x, y, col, id);
+
+                // does not work, id is not player id
                 if(id === player.id)
                     updatePlaced(player.placedCount++);
 
@@ -218,20 +228,19 @@ export default class Socket extends EventEmitter {
             case OPCODES.pixels: {
                 const isProtect = !!dv.getUint8(1),
                     uid = dv.getUint32(2, false);
+                let x, y, col;
                 for(let i = 6; i < dv.byteLength; i+=4){
-                    const [x, y, col] = unpackPixel(dv.getUint32(i));
+                    [x, y, col] = unpackPixel(dv.getUint32(i));
                     if(isProtect){
                         this.emit('protect', x, y, col);
                     }else{
                         this.emit('place', x, y, col, uid);
                     }
-
-                    // TODO move this out this cycle
-                    if(i == dv.byteLength-4){
-                        const user = globals.users[uid];
-                        if(user) user.updateCoords(col, x, y);
-                    }
                 }
+
+                const user = globals.users[uid];
+                if(user) user.updateCoords(col, x, y);
+                
                 break
             }
         }

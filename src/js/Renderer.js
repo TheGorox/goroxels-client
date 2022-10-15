@@ -45,7 +45,7 @@ export default class Renderer {
     }
 
     preRender(){
-        this.preRenderBrush(player.brushSize, camera.zoom);
+        this.preRenderBrush();
     }
 
     preRenderBrush(){
@@ -122,7 +122,6 @@ export default class Renderer {
         this.preRendered.brush.canvas = canvas;
         this.preRendered.brush.ctx = canvas;
         this.preRendered.brush.imageData = canvas;
-        this.preRendered.brush.canvas = canvas;
         this.preRendered.brush.circle = circle;
     }
 

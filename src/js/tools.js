@@ -50,6 +50,7 @@ import template from './template';
 import me from './me';
 import { closestColor } from './utils/color';
 import { getOrDefault, setLS } from './utils/localStorage';
+import { testPointInPolygon } from './utils/misc';
 
 const mobile = globals.mobile;
 
@@ -81,7 +82,7 @@ function getColByCord(x, y, first = player.color, second = player.secondCol) {
     return isOdd(x, y) ? first : second
 }
 
-function checkBounds(x, y){
+function checkBounds(x, y) {
     return (x >= 0 && x < boardWidth && y >= 0 && y < boardHeight)
 }
 
@@ -145,6 +146,7 @@ class Clicker extends Tool {
         this.on('up', this.up)
         this.on('move', this.move)
         this.on('leave', this.up)
+        this.on('_gesture', this.ongesture);
 
         onToolManager(() => {
             // mobile is already subscribed to pointer events
@@ -171,7 +173,7 @@ class Clicker extends Tool {
         this.screenPos = [e.clientX, e.clientY];
     }
     mouseup(e) {
-        if (e.button !== 0) return;
+        if (e.button !== 0 || !this.screenPos) return;
         const dx = Math.abs(e.clientX - this.screenPos[0]);
         const dy = Math.abs(e.clientY - this.screenPos[1]);
         if (dx > 5 || dy > 5) return;
@@ -193,13 +195,21 @@ class Clicker extends Tool {
 
         if (!mobile)
             this.emit('move', {});
+        else {
+            this.pointerId = e.pointerId;
+        }
     }
     up(e) {
         if (this.mouseIsDown) {
             if (mobile)
-                this.emit('move', {}, true);
+                this.emit('move', e, true);
             this.mouseIsDown = false;
         }
+    }
+
+    ongesture() {
+        this.mouseIsDown = false;
+        this.lastPos = null;
     }
 
     checkPixel(x, y) {
@@ -218,15 +228,27 @@ class Clicker extends Tool {
 
     /*
     */
-    move(e, isUp=false) {
-        if(e.gesture)
-            this.lastPos = null;
-        if (!this.mouseIsDown || e.gesture || getCurCol() === -1) return;
+    move(e, isUp = false) {
+        if (e.gesture) {
+            // if gesture is started, we reset mousedown state
+            this.ongesture();
+            return
+        }
+        if (!this.mouseIsDown ||
+            e.gesture ||
+            getCurCol() === -1) return;
+
+        // mobile and same pointerid as at down but also not initiated by 'up' event
+        if (mobile && this.pointerId !== e.pointerId)
+            return
 
         const screenX = e.clientX,
             screenY = e.clientY;
 
-        if(Math.abs(screenX-this.screenPos[0]) < 5 && Math.abs(screenY-this.screenPos[1]) < 5 && !isUp){
+        const dx = Math.abs(screenX - this.screenPos[0]);
+        const dy = Math.abs(screenY - this.screenPos[1]);
+
+        if (dx < 5 && dy < 5 && !isUp) {
             return;
         }
         let [x, y] = [player.x, player.y];
@@ -311,7 +333,7 @@ class Clicker extends Tool {
         return deletedSome;
     }
 }
-const clicker = new Clicker('clicker', 32, clickerIcon);
+const clicker = new Clicker('clicker', 'Space', clickerIcon);
 
 class Protector extends Clicker {
     constructor(...args) {
@@ -369,15 +391,16 @@ class Protector extends Clicker {
         // clicker's move func with protect state
         const state = this.getProtectState();
         pixels.forEach(p => p[2] = state);
+        if(!pixels.length) return;
 
         protectPixels(pixels);
     }
 
     render() { }
 }
-const protector = new Protector('protector', 'V'.charCodeAt(), protectIcon);
+const protector = new Protector('protector', 'KeyV', protectIcon, ROLE.MOD);
 
-const altProtector = new Protector('alt protector', 'ALT+' + 'V'.charCodeAt());
+const altProtector = new Protector('alt protector', 'ALT+KeyV', null, ROLE.MOD);
 altProtector._alt = true;
 
 class Mover extends Tool {
@@ -476,13 +499,13 @@ class Mover extends Tool {
         // idk what was purpose of this
         // but i actually need to render fx on mobiles
         // if (!mobile) {
-            if (this.lastPlayerPos[0] != player.x ||
-                this.lastPlayerPos[1] != player.y ||
-                this.mousedown) {
-                renderFX();
-            }
+        if (this.lastPlayerPos[0] != player.x ||
+            this.lastPlayerPos[1] != player.y ||
+            this.mousedown) {
+            renderFX();
+        }
 
-            this.lastPlayerPos = [player.x, player.y];
+        this.lastPlayerPos = [player.x, player.y];
         // }
 
         if (!this.mousedown) return;
@@ -494,7 +517,8 @@ class Mover extends Tool {
                 return
         }
 
-        camera.moveTo(-e.movementX / camera.zoom / devicePixelRatio, -e.movementY / camera.zoom / devicePixelRatio);
+        // now works without pixel ratio, i'll keep it here if not
+        camera.moveTo(-e.movementX / camera.zoom /* / devicePixelRatio */, -e.movementY / camera.zoom /* / devicePixelRatio */);
     }
 
     moveThresold() {
@@ -527,11 +551,12 @@ class FloodFill extends Tool {
 
         if (this.previewing) {
             this.fx.remove();
+            renderFX();
             this.previewing = false;
         } else return; // means that key wasn't pressed
 
 
-        if(isCancel)
+        if (isCancel)
             return;
 
         const cord = screenToBoardSpace(e.clientX, e.clientY);
@@ -626,13 +651,14 @@ class FloodFill extends Tool {
         }
 
         function tick(ctx) {
-            if(globals.mobile && globals.toolManager.tool !== this){
+            if (globals.mobile && globals.toolManager.tool !== this) {
                 this.up({}, true);
                 return 1;
             }
             if (player.x != _lastX || player.y != _lastY) {
                 restart.call(this);
             }
+            if (getCurCol() === -1) return 1;
 
             let res = 0;
             for (let i = 0; i < 700 && res == 0; i++)
@@ -717,7 +743,7 @@ class FloodFill extends Tool {
         return true
     }
 }
-const floodfill = new FloodFill('floodfill', 'F'.charCodeAt(), floodfillIcon);
+const floodfill = new FloodFill('floodfill', 'KeyF', floodfillIcon);
 
 class Pipette extends Tool {
     constructor(...args) {
@@ -763,9 +789,9 @@ class Pipette extends Tool {
         this.downTime = null;
     }
 }
-const pipette = new Pipette('pipette', 'C'.charCodeAt(), /*pipetteIcon*/);
+const pipette = new Pipette('pipette', 'KeyC', /*pipetteIcon*/);
 
-const altPipette = new Pipette('alt pipette', 'ALT+' + 'C'.charCodeAt());
+const altPipette = new Pipette('alt pipette', 'ALT+KeyC');
 altPipette.off('down', altPipette.down);
 altPipette.on('down', (e) => {
     e.__alt = true;
@@ -775,6 +801,8 @@ altPipette.on('down', (e) => {
 class Line extends Tool {
     constructor(...args) {
         super(...args);
+
+        this.drawLength = JSON.parse(getOrDefault('drawLineLen', false));;
 
         onToolManager(() => {
             this.handlers();
@@ -799,12 +827,11 @@ class Line extends Tool {
         }
 
         function move(e) {
-            if(e.gesture){
+            if (!isDown || !startCoords) return;
+            if (e.gesture) {
                 isDown = false;
                 return startCoords = null;
             };
-
-            if (!isDown || !startCoords) return;
 
             endCoords = [player.x, player.y];
 
@@ -820,6 +847,8 @@ class Line extends Tool {
                 fx && removeFX(fx);
                 fx = new FX((ctx) => {
                     ctx.globalAlpha = .5;
+
+                    // draw line pixel by pixel
                     line.forEach(([x, y]) => {
                         const color = getColByCord(x, y);
                         ctx.fillStyle = hexPalette[color];
@@ -828,8 +857,9 @@ class Line extends Tool {
                         ctx.fillRect(screenX, screenY, camera.zoom, camera.zoom);
                     });
 
+                    // draw (non pixelated) black line over the line
                     ctx.strokeStyle = '#000000';
-                    ctx.strokeWidth = camera.zoom / 5;
+                    ctx.lineWidth = camera.zoom / 5;
 
                     const startScreen = boardToScreenSpace(...line[0]);
                     const endScreen = boardToScreenSpace(...line[line.length - 1]);
@@ -838,6 +868,30 @@ class Line extends Tool {
                     ctx.lineCap = 'round'
                     ctx.moveTo(...startScreen.map(z => z += camera.zoom / 2));
                     ctx.lineTo(...endScreen.map(z => z += camera.zoom / 2));
+
+                    // draw line length text
+
+                    if (this.drawLength) {
+                        ctx.save();
+                        ctx.globalAlpha = .7;
+
+                        const fontHei = camera.zoom / 1.5;
+                        ctx.font = fontHei + 'px sans-serif';
+                        ctx.fillStyle = 'black'
+                        ctx.strokeStyle = 'white';
+
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.lineWidth = fontHei / 6;
+
+                        const text = line.length;
+                        const [x, y] = [startScreen[0] + camera.zoom * 0.5, startScreen[1] + camera.zoom * 1.5];
+
+                        ctx.strokeText(text, x, y);
+                        ctx.fillText(text, x, y);
+
+                        ctx.restore();
+                    }
 
                     ctx.stroke();
 
@@ -851,15 +905,17 @@ class Line extends Tool {
 
         function up() {
             this.off('tick', tick);
-            isDown = false;
 
-            if (!startCoords) return;
+            if (!isDown || !startCoords) return;
+            isDown = false;
 
             fx && fx.remove();
 
             if (!endCoords) endCoords = [player.x, player.y];
 
             line = shapes.line(...startCoords, ...endCoords);
+            startCoords = null;
+            endCoords = null;
 
             renderFX();
             this.on('tick', tick);
@@ -905,21 +961,23 @@ class Line extends Tool {
 }
 const line = new Line('line', 16 /*Shift*/, lineIcon);
 
-const cordAdd = new Tool('coords to chat', 'U'.charCodeAt());
+const cordAdd = new Tool('coords to chat', 'KeyU');
 cordAdd.on('up', function () {
-    chatInput[0].value += this.elements.coords.text() + ' ';
+    const cords = $('#coords').text();
+    if (!cords.length) return;
+    chatInput[0].value += cords + ' ';
     chatInput.trigger('focus');
 });
 
-const pixelInfo = new Tool('pixel info', 'I'.charCodeAt());
+const pixelInfo = new Tool('pixel info', 'KeyI');
 pixelInfo.on('down', function () {
     // TODO
 });
 
-const colorSwap = new Tool('swap colors', 'X'.charCodeAt());
+const colorSwap = new Tool('swap colors', 'KeyX');
 colorSwap.on('up', player.swapColors.bind(player));
 
-const colorDec = new Tool('left color', 'A'.charCodeAt());
+const colorDec = new Tool('left color', 'KeyA');
 colorDec.on('down', function () {
     let color = player.color;
     if (--color < 0) color = hexPalette.length - 1;
@@ -927,7 +985,7 @@ colorDec.on('down', function () {
     player.switchColor(color);
 });
 
-const colorInc = new Tool('right color', 'S'.charCodeAt());
+const colorInc = new Tool('right color', 'KeyS');
 colorInc.on('down', function () {
     let color = player.color;
     if (++color >= hexPalette.length) color = 0;
@@ -935,17 +993,17 @@ colorInc.on('down', function () {
     player.switchColor(color);
 });
 
-const chatOpac = new Tool('toggle chat', 'K'.charCodeAt());
+const chatOpac = new Tool('toggle chat', 'KeyK');
 chatOpac.on('down', function () {
     toggleChat();
 });
 
-const menuOpac = new Tool('toggle menu', 'L'.charCodeAt());
+const menuOpac = new Tool('toggle menu', 'KeyL');
 menuOpac.on('down', function () {
     toggleTopMenu();
 });
 
-const allOpac = new Tool('toggle everything', 186 /* ; */);
+const allOpac = new Tool('toggle everything', 'Semicolon' /* ; */);
 allOpac.on('down', function () {
     toggleEverything();
 });
@@ -978,7 +1036,13 @@ class CtrlZ extends Tool {
         }.bind(this);
 
         const tickMax = 500;
-        const tickMin = 25;
+        const tickMin = 50;
+
+        const nocdMinTick = 2;
+        // ticknow = ticknow - (ts / nocdStepFactor)
+        // i.e ms passed since last tick divided by this factor
+        const nocdStepFactor = 100;
+
         const step = 1.5;
         let tickNow = tickMax;
 
@@ -986,26 +1050,39 @@ class CtrlZ extends Tool {
         const tick = function () {
             const ts = Date.now() - lastTick;
             if (ts < tickNow) return;
+            let multiTicks = ts/tickNow|0;
+            // when lastTick is 0 (tool is just activated)
+            if(multiTicks < 0) multiTicks = 1;
+
             lastTick = Date.now();
-            tickNow /= step;
-            if (tickNow < tickMin) tickNow = tickMin;
 
-            if (player.placed.length > player.maxPlaced) {
-                player.placed = player.placed.slice(-player.maxPlaced);
+            do{
+                if (tickNow <= tickMin) {
+                    if(player.bucket.delay < tickMin){
+                        tickNow = Math.max(nocdMinTick, tickNow-(ts/nocdStepFactor))
+                    }
+                }else{
+                    tickNow /= step;
+                }
+    
+                if (player.placed.length > player.maxPlaced) {
+                    player.placed = player.placed.slice(-player.maxPlaced);
+                }
+                if (!player.placed.length) return;
+                if (!player.bucket.spend(1)) return;
+    
+                const [x, y, c] = player.placed.pop();
+    
+                placePixel(x, y, c, false);
             }
-            if (!player.placed.length) return;
-            if (!player.bucket.spend(1)) return;
-
-            const [x, y, c] = player.placed.pop();
-
-            placePixel(x, y, c, false);
+            while(--multiTicks)
         }.bind(this);
 
         this.on('down', down);
         this.on('up', up);
     }
 }
-const ctrlZ = new CtrlZ('ctrlZ', 'Z'.charCodeAt(), revertIcon);
+const ctrlZ = new CtrlZ('ctrlZ', 'KeyZ', revertIcon);
 
 class Grid extends Tool {
     constructor(...args) {
@@ -1024,7 +1101,7 @@ class Grid extends Tool {
         });
 
         this.on('down', this.pressed.bind(this));
-        if(JSON.parse(getOrDefault('enableGrid', false))){
+        if (JSON.parse(getOrDefault('enableGrid', false))) {
             this.show();
         }
     }
@@ -1111,7 +1188,7 @@ class Grid extends Tool {
         this.drawGrid(ctx);
     }
 }
-const grid = new Grid('grid', 'G'.charCodeAt());
+const grid = new Grid('grid', 'KeyG');
 
 // WARNING: it's not supposed to be a bot
 // so it won't check for connection or re-check image
@@ -1227,7 +1304,7 @@ class Paste extends Tool {
         const fx = this.moveFX = new FX(render);
         addFX(fx);
 
-        globals.toolManager.on('move', () => {
+        function move(){
             let newX = player.x,
                 newY = player.y;
             if (newX == xPos && newY == yPos)
@@ -1235,7 +1312,7 @@ class Paste extends Tool {
 
             xPos = newX;
             yPos = newY;
-        });
+        }
 
         let lastX, lastY;
         let down = function (e) {
@@ -1263,10 +1340,12 @@ class Paste extends Tool {
         function off() {
             globals.eventManager.off('mousedown', down);
             globals.eventManager.off('mouseup', up);
+            globals.toolManager.off('move', move);
         }
 
         globals.eventManager.on('mousedown', down);
         globals.eventManager.on('mouseup', up);
+        globals.toolManager.on('move', move);
     }
 
     stopPlace() {
@@ -1338,11 +1417,11 @@ class Paste extends Tool {
         clearInterval(this.drawInterval);
     }
 }
-const paste = new Paste('paste', 'CTRL+' + 'V'.charCodeAt());
+const paste = new Paste('paste', 'CTRL+KeyV');
 
+// TODO move it to config or globals
 let tempOpacity = parseFloat(getOrDefault('template.opacity', 0.5, true));
-
-const templateOp1 = new Tool('template 0/N opaq', 'O'.charCodeAt());
+const templateOp1 = new Tool('template 0/N opaq', 'KeyO');
 templateOp1.on('down', () => {
     if (template.opacity == 0) {
         template.opacity = tempOpacity;
@@ -1353,7 +1432,7 @@ templateOp1.on('down', () => {
     updateTemplate();
 });
 
-const templateOp2 = new Tool('template 1/N opaq', 'P'.charCodeAt());
+const templateOp2 = new Tool('template 1/N opaq', 'KeyP');
 templateOp2.on('down', () => {
     if (template.opacity == 1) {
         template.opacity = tempOpacity;
@@ -1438,7 +1517,7 @@ class Square extends Tool {
         function tick() {
             // ограничитель для 0кд
             let counter = 0;
-            while (counter++ < 100) {
+            while (counter < 100) {
                 if (!square || !square.length) {
                     this.off('tick', tick);
                     return;
@@ -1448,10 +1527,12 @@ class Square extends Tool {
                 const col = getColByCord(x, y, color, color2);
 
                 if (col === undefined || col === -1) return this.off('tick', tick);
+                if (!checkBounds(x, y)) continue;
                 if (getPixel(x, y) === col) continue;
 
                 if (!player.bucket.spend(1)) return square.push([x, y]);
 
+                counter++;
                 placePixel(x, y, col);
             }
         }
@@ -1467,16 +1548,16 @@ class Square extends Tool {
         this.on('up', up);
     }
 }
-const square = new Square('square', 'J'.charCodeAt());
+const square = new Square('square', 'KeyJ');
 
-const incBrush = new Tool('+brush size', 221); // [
+const incBrush = new Tool('+brush size', 'BracketLeft'); // [
 incBrush.on('down', () => {
     if (player.brushSize >= 100) return;
     if (player.brushSize == 1) return updateBrush(4);
     updateBrush(player.brushSize + 2);
 });
 
-const decBrush = new Tool('-brush size', 219); // ]
+const decBrush = new Tool('-brush size', 'BracketRight'); // ]
 decBrush.on('down', () => {
     if (player.brushSize <= 4) return updateBrush(1);
     updateBrush(player.brushSize - 2);
@@ -1499,29 +1580,59 @@ class Copy extends Tool {
         this.on('down', this.down.bind(this));
     }
 
-    down(){
-        if(this.state > 0)
+    down() {
+        if (this.state > 0 || paste.state > 0)
             return
 
         camera.disableMove();
         player.resetColors();
+        globals.elements.mainCanvas.style.cursor = 'crosshair';
 
         this.state = 1;
 
         let fx;
         let startX, startY, endX, endY;
-        function mousedown(){
-            startX = player.x;
-            startY = player.y;
+
+        let altPressed = false,
+            lassoMode = false,
+            lassoPoints = [];
+        function keydown(e) {
+            if (e.key === 'Alt')
+                altPressed = true;
         }
-        function mousemove(){
-            endX = player.x;
-            endY = player.y;
+        function keyup(e) {
+            if (e.key === 'Alt')
+                altPressed = false;
         }
-        function mouseup(){
+
+        function mousedown() {
+            if (altPressed) {
+                lassoMode = true;
+                lassoPoints = [[player.x, player.y]];
+            } else {
+                startX = player.x;
+                startY = player.y;
+            }
+        }
+        function mousemove() {
+            if (lassoMode) {
+                let x = player.x,
+                    y = player.y;
+
+                lassoPoints.push([x, y]);
+            } else {
+                endX = player.x + 1;
+                endY = player.y + 1;
+            }
+        }
+        function mouseup() {
             // area is selected and we can tell Paste tool to draw it
+            globals.elements.mainCanvas.style.cursor = '';
+
             removeFX(fx);
 
+            globals.eventManager.off('keydown', keydown);
+            globals.eventManager.off('keyup', keyup);
             globals.eventManager.off('mousedown', mousedown);
             globals.eventManager.off('mousemove', mousemove);
             globals.eventManager.off('mouseup', mouseup);
@@ -1532,11 +1643,8 @@ class Copy extends Tool {
 
             onSelected();
         }
-        mousedown = mousedown.bind(this);
-        mousemove = mousemove.bind(this);
-        mouseup = mouseup.bind(this);
 
-        function render(ctx){
+        function render(ctx) {
             ctx.save();
 
             ctx.strokeStyle = 'gray';
@@ -1544,10 +1652,21 @@ class Copy extends Tool {
             ctx.setLineDash([3, 3]);
             ctx.globalAlpha = 1;
 
-            const [x1, y1] = boardToScreenSpace(startX, startY);
-            const [x2, y2] = boardToScreenSpace(endX+1, endY+1);
-
-            ctx.strokeRect(x1, y1, x2-x1, y2-y1);
+            if (lassoMode) {
+                ctx.beginPath();
+                const firstCord = boardToScreenSpace(lassoPoints[0][0], lassoPoints[0][1]);
+                ctx.moveTo(...firstCord);
+                for (let i = 1; i < lassoPoints.length; i++) {
+                    const point = lassoPoints[i];
+                    ctx.lineTo(...boardToScreenSpace(...point))
+                }
+                ctx.closePath();
+                ctx.stroke();
+            } else {
+                const [x1, y1] = boardToScreenSpace(startX, startY);
+                const [x2, y2] = boardToScreenSpace(endX, endY);
+                ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+            }
 
             ctx.restore();
             return 1
@@ -1555,20 +1674,50 @@ class Copy extends Tool {
         fx = new FX(render);
         addFX(fx);
 
+        keydown = keydown.bind(this);
+        keyup = keyup.bind(this);
+        mousedown = mousedown.bind(this);
+        mousemove = mousemove.bind(this);
+        mouseup = mouseup.bind(this);
+
+        globals.eventManager.on('keydown', keydown);
+        globals.eventManager.on('keyup', keyup);
         globals.eventManager.on('mousedown', mousedown);
-        globals.eventManager.on('mousemove', mousemove)
+        globals.eventManager.on('mousemove', mousemove);
         globals.eventManager.on('mouseup', mouseup);
 
 
-        function onSelected(){
-            if([startX, startY, endX, endY].some(x => x === undefined))
-                return;
+        function onSelected() {
+            let minX, maxX, minY, maxY;
+            if (lassoMode) {
+                minX = maxX = lassoPoints[0][0];
+                minY = maxY = lassoPoints[0][1];
+                for (let i = 0; i < lassoPoints.length; i++) {
+                    const point = lassoPoints[i];
+                    if (point[0] < minX)
+                        minX = point[0];
+                    if (point[0] > maxX)
+                        maxX = point[0];
+                    if (point[1] < minY)
+                        minY = point[1];
+                    if (point[1] > maxY)
+                        maxY = point[1];
+                }
+            } else {
+                if ([startX, startY, endX, endY].some(x => x === undefined))
+                    return;
+
+                minX = Math.min(startX, endX);
+                maxX = Math.max(startX, endX) + 1;
+                minY = Math.min(startY, endY);
+                maxY = Math.max(startY, endY) + 1;
+            }
 
             // normalize coordinates
-            const minX = Math.max(Math.min(startX, endX), 0);
-            const maxX = Math.min(Math.max(startX, endX), boardWidth);
-            const minY = Math.max(Math.min(startY, endY), 0);
-            const maxY = Math.min(Math.max(startY, endY), boardHeight);
+            minX = Math.max(minX, 0);
+            maxX = Math.min(maxX, boardWidth);
+            minY = Math.max(minY, 0);
+            maxY = Math.min(maxY, boardHeight);
 
             const w = maxX - minX;
             const h = maxY - minY;
@@ -1579,23 +1728,40 @@ class Copy extends Tool {
 
             const ctx = canvas.getContext('2d');
             const data = ctx.createImageData(w, h);
-            data.data.fill(255); // to not set opacity pixels
+
+            // poly x coordinates and y coordinates arrays
+            let vertx, verty;
+            if (lassoMode) {
+                vertx = new Array(lassoPoints.length);
+                verty = new Array(lassoPoints.length);
+
+                for (let i = 0; i < lassoPoints.length; i++) {
+                    const point = lassoPoints[i];
+                    vertx[i] = point[0];
+                    verty[i] = point[1];
+                }
+            }
 
             // local canvas coordinates
-            for(let x = 0; x < w; x++){
-                for(let y = 0; y < h; y++){
-                    const i = (x + y * w)*4;
+            for (let x = 0; x < w; x++) {
+                for (let y = 0; y < h; y++) {
+                    const i = (x + y * w) * 4;
 
                     // absolute board coordinates
                     const cx = minX + x;
                     const cy = minY + y;
 
+                    if (lassoMode && !testPointInPolygon(lassoPoints.length, vertx, verty, cx, cy)) {
+                        continue
+                    }
+
                     const colId = globals.chunkManager.getChunkPixel(cx, cy);
                     const col = palette[colId];
 
                     data.data[i] = col[0];
-                    data.data[i+1] = col[1];
-                    data.data[i+2] = col[2];
+                    data.data[i + 1] = col[1];
+                    data.data[i + 2] = col[2];
+                    data.data[i + 3] = 255;
                 }
             }
 
@@ -1606,7 +1772,7 @@ class Copy extends Tool {
         }
     }
 }
-const copy = new Copy('copy', 'CTRL+' + 'C'.charCodeAt());
+const copy = new Copy('copy', 'CTRL+KeyC');
 
 export default {
     clicker,

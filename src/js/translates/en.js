@@ -11,6 +11,8 @@ export default {
     'game settings': 'game settings',
     'open window': 'open window',
     'account settings': 'account settings',
+    'change name': 'change name',
+    'logout': 'logout',
     'toolbinds settings': 'toolbinds settings',
     'ui settings': 'ui settings',
     'tools': 'tools',
@@ -49,6 +51,7 @@ export default {
     'emoji list': 'emoji list',
     'super secret button': 'super secret button',
     'show placed pixels': 'show placed pixels',
+    'show patterns over the palette': 'show patterns over the palette',
     'more emojis!': 'more emojis!',
     'show protected': 'show protected',
     'brush size': 'brush size',
@@ -57,12 +60,19 @@ export default {
     'chat messages limit': 'chat messages limit',
     'light grid': 'light grid',
     'enable grid': 'enable grid',
+    'draw line length': 'draw line length',
     'Case insensitive, 0/o i/l are same': 'Case insensitive, 0/o i/l are same',
     'Can\'t recognize?': 'Can\'t recognize?',
     'Captcha': 'Captcha',
     'search users': 'search users',
     'OR': 'OR',
     'banned?': 'banned?',
+    'convert image into palette': 'convert image into palette',
+    'save canvas': 'save canvas',
+    'introduction': 'introduction',
+    'how to play?': 'how to play?',
+    'tools': 'tools',
+    'other tools': 'other tools',
     'Goroxels is a multiplayer pixel game with no cooldown! (ok, almost)': 'Goroxels is a multiplayer pixel game with no cooldown! (ok, almost)',
     'There are so many tools for make drawing more comfortable!': 'There are so many tools for make drawing more comfortable!',
     'Any Guest of this site can draw, but to get some features (ability to chat with other players, more lower cooldown) you should be registered.': 'Any Guest of this site can draw, but to get some features (ability to chat with other players, more lower cooldown) you should be registered.',
@@ -93,7 +103,12 @@ export default {
 	'Convert images to the Goroxels palette with <a href="/convert">Converter</a>. You can also convert image and draw, using a pattern convert!': 'Convert images to the Goroxels palette with <a href="/convert">Converter</a>. You can also convert image and draw, using a pattern convert!',
 	'Recommendations: first, convert to the palette, copy converted image and paste it in the pattern converter. When it ready, click "upload on imgur" and copy link you get to the "image URL". Patterns will make your drawing process more relaxing and enjoyable!': 'Recommendations: first, convert to the palette, copy converted image and paste it in the pattern converter. When it ready, click "upload on imgur" and copy link you get to the "image URL". Patterns will make your drawing process more relaxing and enjoyable!',
 	'If url is red,  image you picked is so big. Try to cut your image with parts.': 'If url is red, image you picked is so big. Try to cut your image with parts.',
-	
+    // nsfw modal
+    'WARNING': 'WARNING',
+    'This canvas may contain illustrations, inappropriate for people under age of 18, including:': 'This canvas may contain illustrations, inappropriate for people under age of 18, including:',
+    'Gore, furry, porn, hate, anime and all possible variations of these.': 'Gore, furry, porn, hate, anime and all possible variations of these.',
+    'Are you 18 y.o. and fully understanding what are you doing?': 'Are you 18 y.o. and fully understanding what are you doing?',
+    'I am 18 years old and I take responsibility for my psyche on myself': 'I am 18 years old and I take responsibility for my psyche on myself',	
     // converter section
     // html
     'Convert!': 'Convert!',
@@ -168,4 +183,5 @@ export default {
     'bottom': 'bottom',
     'left': 'left',
     // js and others TODO
+    'LOG IN': 'LOG IN'
 }

@@ -116,6 +116,17 @@ export default class Window {
         windows.push(this);
     }
 
+    updateTitle(newTitle, temp=false){
+        if(!temp){
+            this.title = newTitle;
+        }
+        const head = $('.windowTitle', this.element);
+
+        // this makes ".innerHtml = ..." of method below purposeless
+        // since html is not saved here
+        head.text(newTitle);
+    }
+
     createParentBlock() {
         let el = document.createElement('div');
         el.className = 'window';
@@ -123,7 +134,7 @@ export default class Window {
 
         let head = document.createElement('div');
         head.className = 'windowHeader'
-        head.innerHTML = '<h3>' + this.title + '</h3>';
+        head.innerHTML = '<h3 class="windowTitle">' + this.title + '</h3>';
         el.appendChild(head);
 
         if(this.closeable){
@@ -237,12 +248,41 @@ export default class Window {
     }
 }
 
-export class DialogWindow extends Window{
-    constructor(config){
-        super(config);
+let Modal_exists = false;
+export class Modal{
+    static get isRunning(){
+        return Modal_exists
+    }
+    static set isRunning(val){
+        return Modal_exists=val;
+    }
 
-        if(!config.buttons) return;
+    constructor(config={}){
+        if(Modal.isRunning)
+            throw new Error('Modal is running');
 
+        this.body = null;
 
+        Object.assign(this, config);
+        this.init();
+
+        Modal.isRunning = true;
+    }
+
+    init(){
+        const els = 
+        $(`<div class="modalBg">
+            <div class="modalCont">
+            </div>
+        </div>`);
+
+        this.bgEl = els[0];
+        this.contEl = this.bgEl.children[0];
+
+        $('#ui').append(els);
+    }
+
+    close(){
+        this.bgEl.remove();
     }
 }

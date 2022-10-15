@@ -1,5 +1,4 @@
-// Честно спизжено у уже известного автора
-// Используется исключительно для конверта в lab
+// Stolen and edited from pxlsfiddle
 var colorManip = {
     // Turn a hex color string (without leading '#') into an RGB color array.
     hex2rgb(hex) {

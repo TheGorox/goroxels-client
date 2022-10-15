@@ -45,8 +45,12 @@ export default class EventManager extends EventEmitter {
             }
         });
         document.addEventListener('pointerup', e => {
+            let pointersCnt = this.pointers;
             e.gesture = checkGesture('up');
-            this.emit('mouseup', e);
+
+            // emit event only if 'pointerdown' event was on canvas
+            if(pointersCnt)
+                this.emit('mouseup', e);
         });
 
         interact(element).gesturable({

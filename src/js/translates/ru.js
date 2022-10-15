@@ -11,6 +11,8 @@ export default {
     'game settings': 'общие настройки',
     'open window': 'настроить', // open window будет уместным перевести как настроить (открыть окно настройки) (Джон) 
     'account settings': 'настройки аккаунта',
+    'change name': 'сменить ник',
+    'logout': 'выйти',
     'toolbinds settings': 'горячие клавиши',
     'ui settings': 'настройки UI',
     'tools': 'инструменты',
@@ -48,8 +50,9 @@ export default {
     'palette width': 'размер палитры',
     'hide emojis': 'спрятать эмодзи',
     'emoji list': 'лист доступных эмодзи',
-    'super secret button': 'ХТО НАЖАЛ ТОТ абасреца!!!',
+    'super secret button': 'кто нажмёт тот гей',
     'show placed pixels': 'показать счётчик пикселей',
+    'show patterns over the palette': 'узоры поверх палитры',
     'more emojis!': 'навали эмодзи!',
     'show protected': 'показать защищённые пиксели',
     'brush size': 'размер кисти',
@@ -58,13 +61,20 @@ export default {
     'chat messages limit': 'лимит сообщений чата',
     'light grid': 'светлая сетка',
     'enable grid': 'включить сетку',
+    'draw line length': 'отображать длину линии',
     'Case insensitive, 0/o i/l are same': 'Регистр не имеет значения, O/o и I/i одинаковы', // для капчи, если картинка имеет на себе HJKfY78, то значение hjkfy78 будет принято  (Джон)
     'Can\'t recognize?': 'Нечитаемо?',
     'Captcha': 'Капча',
     'search users': 'поиск пользователей',
     'OR': 'ИЛИ',
     'banned?': 'забанен?',
+    'convert image into palette': 'сконвертировать картинку в палитру',
+    'save canvas': 'скачать полотно',
 	// rus intro translate (джон)
+    'introduction': 'вступление',
+    'how to play?': 'как играть?',
+    'tools': 'инструменты',
+    'other tools': 'остальные штуки',
     'Goroxels is a multiplayer pixel game with no cooldown! (ok, almost)': 'Goroxels - это мультиплеерная пиксельная рисовалка почти без задержки!',
     'There are so many tools for make drawing more comfortable!': 'Добавлены различные инструменты и фичи для упрощения рисования.',
     'Any Guest of this site can draw, but to get some features (ability to chat with other players, more lower cooldown) you should be registered.': 'На главном полотне может рисовать каждый, но зарегистрированным пользователям даются преимущества в виде чата, уменьшенной задержки между пикселями и не только.',
@@ -95,14 +105,19 @@ export default {
 	'Convert images to the Goroxels palette with <a href="/convert">Converter</a>. You can also convert image and draw, using a pattern convert!': 'Для упрощения рисования по шаблону также сделан <a href="/convert">Конвертер</a>. В нём две основные функции: конвертация в палитру и конвертация в узор.',
 	'Recommendations: first, convert to the palette, copy converted image and paste it in the pattern converter. When it ready, click "upload on imgur" and copy link you get to the "image URL". Patterns will make your drawing process more relaxing and enjoyable!': 'Рекомендованный порядок действий: сначала сконвертировать в палитру (можно вставлять ссылки, открывать из файла, либо из буфера обмена), затем скопировать готовую картинку и вставить в узорный конвертер. Когда шаблон будет готов, нажми "загрузить на imgur" и скопируй полученную ссылку в "URL изображения". Увидишь, с ним куда проще.',
 	'If url is red, image you picked is so big. Try to cut your image with parts.': 'Если ссылка красная, значит изображение слишком большое. Попробуй рисовать по частям.',
-
+    // nsfw modal
+    'WARNING': 'ВНИМАНИЕ',
+    'This canvas may contain illustrations, inappropriate for people under age of 18, including:': 'Это полотно может содержать изображения, неприемлемые для лиц младше 18 лет, включая, но не ограничиваясь:',
+    'Gore, furry, porn, hate, anime and all possible variations of these.': 'Насилие, фурри, порно, ненависть, аниме и всевозможные их комбинации.',
+    'Are you 18 y.o. and fully understanding what are you doing?': 'Тебе есть 18 и ты полностью понимаешь что делаешь?',
+    'I am 18 years old and I take responsibility for my psyche on myself': 'Мне есть 18 и я беру ответственность за свою психику на себя',	
     // converter section
     // html
     'Convert!': 'Конверт!',
     'Into palette': 'В палитру',
     'GO!': 'За Родину!',
     'Dithering': 'Дизеринг',
-    'None': 'Нет',
+    'None': 'Нет дизеринга',
     'Floyd-Steinberg': 'Флойд-Штеинберг',
     'Stuсki': 'Штуки',
     'Chess': 'Шахматы',
@@ -113,10 +128,10 @@ export default {
     'Lighten': 'Светлее',
     'Balance': 'Баланс',
     'Color function for ΔE': 'Дополнительные цветовые настройки',
-    'RGB + luminance [very fast and dirty]': 'RGB + освещение [очень быстрый конверт, "грязная" картинка]',
+    'RGB + luminance [very fast and dirty]': 'RGB + освещение [оч. быстро, "грязная" картинка]',
     'ciede2000 [slow and accurate]': 'ciede2000 [медленно, но верно]',
     'CMC I:c [weird and slow]': 'CMC I:c [всрато и медленно(но иногда лучше других)]',
-    'Euclidian + color values [fast and dirty]': 'Евклид + значения восприятия [быстрый конверт, "грязная" картинка]',
+    'Euclidian + color values [fast and dirty]': 'Евклид + значения восприятия [быстро, "грязная" картинка]',
     'brightness tune': 'регулировка яркости',
     'reset': 'сброс',
     'constrast tune': 'регулировка контраста',
@@ -171,4 +186,5 @@ export default {
     'bottom': 'снизу',
     'left': 'слева', 
     // js and others TODO
+    'LOG IN': 'ВОЙТИ'
 }

@@ -5,7 +5,7 @@ import {
 import globals from '../globals';
 
 export let halfMap = [null, null]
-export function initHalfmap(){
+export function initHalfmap() {
     halfMap = [
         boardWidth / 2,
         boardHeight / 2
@@ -20,38 +20,38 @@ export function insanelyLongMobileBrowserCheck() {
     return check;
 }
 
-export function decodeKey(str){
+export function decodeKey(str) {
     let config = {
         alt: false,
         ctrl: false,
-        keyCode: null
+        code: null
     }
 
     str.split('+').forEach(param => {
-        if(param === 'CTRL'){
+        if (param === 'CTRL') {
             config.ctrl = true;
-        }else if(param === 'ALT'){
+        } else if (param === 'ALT') {
             config.alt = true;
-        }else{
-            config.keyCode = parseInt(param);
+        } else {
+            config.code = param;
         }
     })
 
     return config
 }
 
-export function stringifyKeyEvent(ev){
+export function stringifyKeyEvent(ev) {
     let out = '';
-    if(ev.altKey){
+    if (ev.altKey) {
         out += 'ALT+'
     }
-    if(ev.ctrlKey){
+    if (ev.ctrlKey) {
         out += 'CTRL+'
     }
-    return out + ev.keyCode
+    return out + ev.code
 }
 
-export function calculateColumnSize(){
+export function calculateColumnSize() {
     const columns = $('.column', globals.elements.topMenuContent);
     const windowWidth = window.innerWidth;
 
@@ -69,12 +69,41 @@ export function htmlspecialchars(text) {
         .replace(/'/g, "&#039;");
 }
 
-export function getRecommendedColorSize(){
+export function getRecommendedColorSize() {
     const max = 24;
     const p = $('#palette');
     // 14 is for palette padding 
-    let size = Math.floor((window.innerWidth-14)/p.children().length);
+    let size = Math.floor((window.innerWidth - 14) / p.children().length);
     size = Math.min(size, max);
 
     return size
+}
+
+export function getPathsafeDate() {
+    const date = new Date;
+
+    const day = date.getDate().toString().padStart(2, '0'); // convert "1"s to "01"s
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+
+    const today = `${day}.${month}.${year}`;
+
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const seconds = date.getSeconds().toString().padStart(2, '0');
+
+    const time = `${hours}-${minutes}-${seconds}`;
+
+    return `${today} - ${time}`
+}
+
+export function testPointInPolygon(nvert, vertx, verty, testx, testy) {
+    // copied and translated to js from some stackoverflow
+    let i, j, c = 0;
+    for (i = 0, j = nvert - 1; i < nvert; j = i++) {
+        if (((verty[i] > testy) != (verty[j] > testy)) &&
+            (testx < (vertx[j] - vertx[i]) * (testy - verty[i]) / (verty[j] - verty[i]) + vertx[i]))
+            c = !c;
+    }
+    return c;
 }

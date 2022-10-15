@@ -1,13 +1,4 @@
-# Клиент для goroxels
+# The Goroxels client
 
-Структура и конфиг webpack честно украдены у owop-client
-____________________
-Плюсы новых пикселей:
-* Создание нескольких полотен
-* Аккаунты (плюс ли?)
-* У доверенных кд стремится к нулю
-* А нечего жаловаться! Зато своё, домашнее!
-* Я
-
-# Способ установки
-Быстрый/полный способ установки лежит в [соседнем репозитории](https://github.com/TheGorox/goroxels-server)
+# How to install
+Fast/full install is at [goroxels-server](https://github.com/TheGorox/goroxels-server) repository

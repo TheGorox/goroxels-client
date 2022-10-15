@@ -20,6 +20,7 @@ export const STRING_OPCODES = {
     reload: 'r'
 }
 
+// max coords is up to 4096
 export function packPixel(x, y, col) {
     return (x << 12 | y) << 7 | col
 }

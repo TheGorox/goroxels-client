@@ -10,10 +10,10 @@ export function rgb2hex(rgb) {
     return '#' + component2hex(rgb[0]) + component2hex(rgb[1]) + component2hex(rgb[2])
 }
 
-export function isDarkColor(r, g, b) {
-    // V value from HSV
-    return Math.max(r / 255, g / 255, b / 255) < 0.5
-}
+// export function isDarkColor(r, g, b) {
+//     // V value from HSV
+//     return Math.max(r / 255, g / 255, b / 255) < 0.5
+// }
 
 export function applyColor(origColor, tintColor) {
     var alpha = tintColor[3] / 255;
@@ -41,4 +41,9 @@ export function closestColor(rgb, palette){
         if(scrnow == 0) break;
     }
     return colorId;
+}
+
+export function isDarkColor(r, g, b){
+    const darkness = 1-(0.299*r + 0.587*g + 0.114*b)/255;
+    return darkness > 0.5;
 }

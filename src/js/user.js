@@ -23,7 +23,7 @@ export default class User {
     static async CreateWindow(info, tempId) {
         const win = new Window({
             center: true,
-            title: `${info.name || t_('PLAYER') + ' ' + (tempId||info.id)}`
+            title: `${info.name || t_('PLAYER') + ' ' + (tempId || info.id)}`
         });
 
         if (info.ip) {
@@ -96,7 +96,7 @@ export default class User {
         });
 
         $('.banByIp', win.body).on('click', async () => {
-            const ip = info._ip;
+            const ip = info._ip || info.ip;
             if (!ip) return toastr.error(t_('No ip!'))
 
             const resp = await apiRequest(`/admin/banPlayer?ip=${ip}`);
@@ -114,21 +114,41 @@ export default class User {
         this.id = id;
         this.userId = userId;
 
-        this.online = true;
-
         this.registered = registered;
+
+        this.conns = [id];
+
+        
+        let displayNameTest,
+            displayName = this.name;
+        try {
+            displayNameTest = $(globals.chat.parseColors(this.name))[0]
+        }catch{}
+        if(displayNameTest){
+            if(displayNameTest.innerText.length){
+                displayName = displayNameTest.innerText;
+            }
+        }
 
         this.element = $(
             `<tr class="tableRow">
                 <td title="id ${id}" class="user">
-                    ${`<button class="userInfoBtn"><img src="${userImg}"></button>`}
-                    <span class="name">${name}</span>
+                    <button class="userInfoBtn"><img src="${userImg}"></button>
+                    <span class="name">${displayName} </span>
+                    <span class="xConns"></span>
                 </td>
                 <td></td>
             </tr>`);
 
         this.nameEl = $('.name', this.element);
         this.coordsEl = $(this.element.children()[1]);
+
+        this.nameEl.on('click', function () {
+            const visibleNick = this.innerText;
+            globals.elements.chatInput.value += visibleNick + ', ';
+            globals.elements.chatInput.focus();
+        })
+
 
         $('.userInfoBtn', this.element).on('click', async () => {
             const isReg = this.registered;
@@ -145,7 +165,8 @@ export default class User {
                 .split(', ')
                 .map(x => parseInt(x, 10));
 
-            camera.centerOn(x, y);
+            if (Number.isInteger(x) && Number.isInteger(y))
+                camera.centerOn(x, y);
         })
 
         usersContainer.append(this.element);
@@ -156,16 +177,27 @@ export default class User {
         this.coordsEl.text(`(${x}, ${y})`);
     }
 
-    destroy() {
-        // user would not be used again, except leavedUsers win
-        this.online = false;
-        this.element.hide();
+    close(clientId){
+        this.conns.splice(this.conns.indexOf(clientId), 1);
+        if(this.conns.length === 0)
+            this.destroy();
+        else
+            this.updateX();
 
-        setTimeout(this.harakiri.bind(this), 60000 * 60); // 1 hour
+        delete globals.users[clientId]
     }
 
-    harakiri() {
+    destroy() {
         this.element.remove();
-        delete globals.users[this.id]
+    }
+
+    newConnection(clientId){
+        this.conns.push(clientId);
+        this.updateX();
+    }
+
+    updateX(){
+        const text = (this.conns.length > 1) ? `[x${this.conns.length}]` : '';
+        $('.xConns', this.element).text(text);
     }
 }

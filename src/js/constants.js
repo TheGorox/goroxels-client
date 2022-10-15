@@ -1,4 +1,5 @@
 // key codes to human readable string
+// !deprecated!
 export const keys = { // others are ok with charCodeAt
     8: "Backspace",
     9: "Tab",
@@ -64,11 +65,11 @@ export const keys = { // others are ok with charCodeAt
 
 export const ROLE = {
     BANNED: -1,
-    USER: 0,
-    TRUSTED: 1,
-    MOD: 2,
-    ADMIN: 3
+    GUEST: 0,
+    USER: 1,
+    TRUSTED: 2,
+    MOD: 3,
+    ADMIN: 4
 }
-
 export const ROLE_I = {};
 Object.keys(ROLE).forEach(x => ROLE_I[ROLE[x]] = x);

@@ -2,7 +2,8 @@ import globals from './globals';
 import Chunk from './Chunk';
 import {
     bgrPalette,
-    argbToId
+    argbToId,
+    boardWidth, boardHeight, chunkSize
 } from './config';
 import {
     boardToChunk
@@ -27,11 +28,6 @@ export default class ChunkManager {
 
         globals.socket.on('place', (x, y, col) => {
             this.setChunkPixel(x, y, col);
-
-            // let [clientX, clientY] = boardToScreenSpace(x, y);
-
-            // globals.mainCtx.fillStyle = hexPalette[col];
-            // globals.mainCtx.fillRect(clientX, clientY, camera.zoom, camera.zoom);
 
             globals.renderer.needRender = true;
         })
@@ -107,5 +103,24 @@ export default class ChunkManager {
         if (!chunk) return -1
 
         return chunk.getProtect(offx, offy);
+    }
+
+    // for the screenshot function
+    dumpAll(){
+        const canvas = document.createElement('canvas');
+        canvas.width = boardWidth;
+        canvas.height = boardHeight;
+
+        const ctx = canvas.getContext('2d');
+
+        this.chunks.forEach(chunk => {
+            if(!chunk.canvas) return;
+
+            const offX = chunk.x * chunkSize,
+                offY = chunk.y * chunkSize;
+            
+            ctx.drawImage(chunk.canvas, offX, offY)
+        })
+        return canvas
     }
 }

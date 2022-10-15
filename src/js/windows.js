@@ -14,7 +14,7 @@ import { game } from './config'
 import globals from './globals';
 import me from './me';
 import player from './player'
-import { apiRequest, fetchCaptcha, fixChatPosition, setPaletteColorsSize, showProtected, solveCaptcha, toggleEmojis, togglePlaced, updateBrush, updateEmojis, updateMe } from './actions';
+import { apiRequest, fetchCaptcha, fixChatPosition, makeScreenshot, setPaletteColorsSize, showPatternsOnPalette, showProtected, solveCaptcha, toggleEmojis, togglePlaced, unloadPalettePatterns, updateBrush, updateEmojis, updateMe } from './actions';
 import toastr from 'toastr';
 import tools from './tools';
 import chat from './chat';
@@ -49,7 +49,7 @@ function getKeyAsString(keyCode) {
 
 export function accountSettings() {
     const settingsWin = new Window({
-        title: translate('Account Settings'),
+        title: capitalize(translate('account settings')),
         center: true
     });
     if (!settingsWin.created) return;
@@ -57,7 +57,7 @@ export function accountSettings() {
     let html = generateTable([
         [tr('role'), ROLE_I[me.role].toUpperCase()],
         [
-            capitalize(tr('account settings')),
+            tr('change name'),
             `<input type="text" id="name" style="width:50%"><button id="changeName">yes</button>`
         ],
         [
@@ -131,6 +131,7 @@ export function keyBinds() {
 
     for (const tool of Object.values(tools)) {
         if (!tool.key) continue;
+        if (tool.requiredRole > me.role) continue;
 
         const tableRow = $(
             `<tr>
@@ -148,8 +149,7 @@ export function keyBinds() {
         input.on('keydown', e => {
             e.preventDefault();
 
-            //   yes          ctrl                alt
-            if (!e.keyCode || e.keyCode === 17 || e.keyCode === 18) return
+            if (!e.code || e.code === 'ControlLeft' || e.code === 'AltLeft') return
 
             const altUsed = e.altKey;
             const ctrlUsed = e.ctrlKey;
@@ -165,8 +165,8 @@ export function keyBinds() {
                 modsElement.text(modsElement.text() + 'CTRL + ');
                 key += 'CTRL+'
             }
-            key += e.keyCode;
-            input.val(getKeyAsString(e.keyCode));
+            key += e.code;
+            input.val(e.code);
 
             // removing same values
             for (let _tool of Object.values(tools)) {
@@ -180,7 +180,7 @@ export function keyBinds() {
         });
         input.on('keyup', e => {
             e.preventDefault();
-            if (!e.keyCode || e.keyCode === 17 || e.keyCode === 18) return
+            if (!e.code || e.code === 'ControlLeft' || e.code === 'AltLeft') return
 
             // saving ALL key binds
             let toSave = {};
@@ -198,7 +198,7 @@ export function keyBinds() {
 
         modsElement.text((parsed.alt ? 'ALT + ' : '') + (parsed.ctrl ? 'CTRL + ' : ''));
 
-        input.val(getKeyAsString(parsed.keyCode));
+        input.val(parsed.code);
     }
 
     $(keysWin.body).append(table);
@@ -216,7 +216,8 @@ export function uiSettings() {
         [translate('hide emojis'), '<input type="checkbox" id="toggleEmojis">'],
         [translate('emoji list'), '<input type="text" id="emojiList">'],
         [`<button id="moreEmojis">${translate('super secret button')}</button>`],
-        [translate('show placed pixels'), '<input type="checkbox" id="togglePlaced">']
+        [translate('show placed pixels'), '<input type="checkbox" id="togglePlaced">'],
+        [translate('show patterns over the palette'), '<input type="checkbox" id="showPatterns">']
     ]);
     $(setWin.body).append(table);
 
@@ -252,13 +253,19 @@ export function uiSettings() {
 
         w.body.innerHTML = '😁😂😃😄😅😆😉😊😋😌😍😏😒😓😔😖😘😚😜😝😞😠😡😢😣😤😥😨😩😪😫😭😰😱😲😳😵😷😸😹😺😻😼😽😾😿🙀🙅🙆🙇🙈🙉🙊🙋🙌🙍🙎🙏✂✅✈✉✊✋✌✏✒✔✖✨✳✴❄❇❌❎❓❔❕❗❤➕➖➗➡➰🚀🚃🚄🚅🚇🚉🚌🚏🚑🚒🚓🚕🚗🚙🚚🚢🚤🚥🚧🚨🚩🚪🚫🚬🚭🚲🚶🚹🚺🚻🚼🚽🚾🛀Ⓜ🅰🅱🅾🅿🆎🆑🆒🆓🆔🆕🆖🆗🆘🆙🆚🈁🈂🈚🈯🈲🈳🈴🈵🈶🈷🈸🈹🈺🉐🉑©®‼⁉™ℹ↔↕↖↗↘↙↩↪⌚⌛⏩⏪⏫⏬⏰⏳▪▫▶◀◻◼◽◾☀☁☎☑☔☕☝☺♈♉♊♋♌♍♎♏♐♑♒♓♠♣♥♦♨♻♿⚓⚠⚡⚪⚫⚽⚾⛄⛅⛎⛔⛪⛲⛳⛵⛺⛽⤴⤵⬅⬆⬇⬛⬜⭐⭕〰〽㊗㊙🀄🃏🌀🌁🌂🌃🌄🌅🌆🌇🌈🌉🌊🌋🌌🌏🌑🌓🌔🌕🌙🌛🌟🌠🌰🌱🌴🌵🌷🌸🌹🌺🌻🌼🌽🌾🌿🍀🍁🍂🍃🍄🍅🍆🍇🍈🍉🍊🍌🍍🍎🍏🍑🍒🍓🍔🍕🍖🍗🍘🍙🍚🍛🍜🍝🍞🍟🍠🍡🍢🍣🍤🍥🍦🍧🍨🍩🍪🍫🍬🍭🍮🍯🍰🍱🍲🍳🍴🍵🍶🍷🍸🍹🍺🍻🎀🎁🎂🎃🎄🎅🎆🎇🎈🎉🎊🎋🎌🎍🎎🎏🎐🎑🎒🎓🎠🎡🎢🎣🎤🎥🎦🎧🎨🎩🎪🎫🎬🎭🎮🎯🎰🎱🎲🎳🎴🎵🎶🎷🎸🎹🎺🎻🎼🎽🎾🎿🏀🏁🏂🏃🏄🏆🏈🏊🏠🏡🏢🏣🏥🏦🏧🏨🏩🏪🏫🏬🏭🏮🏯🏰🐌🐍🐎🐑🐒🐔🐗🐘🐙🐚🐛🐜🐝🐞🐟🐠🐡🐢🐣🐤🐥🐦🐧🐨🐩🐫🐬🐭🐮🐯🐰🐱🐲🐳🐴🐵🐶🐷🐸🐹🐺🐻🐼🐽🐾👀👂👃👄👅👆👇👈👉👊👋👌👍👎👏👐👑👒👓👔👕👖👗👘👙👚👛👜👝👞👟👠👡👢👣👤👦👧👨👩👪👫👮👯👰👱👲👳👴👵👶👷👸👹👺👻👼👽👾👿💀💁💂💃💄💅💆💇💈💉💊💋💌💍💎💏💐💑💒💓💔💕💖💗💘💙💚💛💜💝💞💟💠💡💢💣💤💥💦💧💨💩💪💫💬💮💯💰💱💲💳💴💵💸💹💺💻💼💽💾💿📀📁📂📃📄📅📆📇📈📉📊📋📌📍📎📏📐📑📒📓📔📕📖📗📘📙📚📛📜📝📞📟📠📡📢📣📤📥📦📧📨📩📪📫📮📰📱📲📳📴📶📷📹📺📻📼🔃🔊🔋🔌🔍🔎🔏🔐🔑🔒🔓🔔🔖🔗🔘🔙🔚🔛🔜🔝🔞🔟🔠🔡🔢🔣🔤🔥🔦🔧🔨🔩🔪🔫🔮🔯🔰🔱🔲🔳🔴🔵🔶🔷🔸🔹🔺🔻🔼🔽🕐🕑🕒🕓🕔🕕🕖🕗🕘🕙🕚🕛🗻🗼🗽🗾🗿😀😇😈😎😐😑😕😗😙😛😟😦😧😬😮😯😴😶🚁🚂🚆🚈🚊🚍🚎🚐🚔🚖🚘🚛🚜🚝🚞🚟🚠🚡🚣🚦🚮🚯🚰🚱🚳🚴🚵🚷🚸🚿🛁🛂🛃🛄🛅🌍🌎🌐🌒🌖🌗🌘🌚🌜🌝🌞🌲🌳🍋🍐🍼🏇🏉🏤🐀🐁🐂🐃🐄🐅🐆🐇🐈🐉🐊🐋🐏🐐🐓🐕🐖🐪👥👬👭💭💶💷📬📭📯📵🔀🔁🔂🔄🔅🔆🔇🔉🔕🔬🔭🕜🕝🕞🕟🕠🕡🕢🕣🕤🕥🕦🕧'
         w.body.style.userSelect = 'text';
-    })
-
+    });
     $('#togglePlaced')[0].checked = getOrDefault('hidePlaced', 1) == 0;
     $('#togglePlaced').on('click', e => {
         const show = e.target.checked;
         setLS('hidePlaced', show ? 0 : 1);
         togglePlaced(show);
+    });
+
+    $('#showPatterns')[0].checked = globals.showPatterns;
+    $('#showPatterns').on('click', e => {
+        const show = e.target.checked;
+        globals.showPatterns = show;
+        show ? showPatternsOnPalette() : unloadPalettePatterns();
     });
 }
 
@@ -269,8 +276,9 @@ export function gameSettings() {
     });
     if (!win.created) return;
 
-    // 1 for guests (packets disabled by server), 20 for admins, and 10 for others
-    let maxBrushSize = (me.role === ROLE.ADMIN ? 20 : (me.role <= ROLE.USER ? 1 : 10))
+    // 1 for guests (packets disabled by server), 20 for admins, and 10 for others 
+    console.log(me.role, ROLE.USER)
+    let maxBrushSize = (me.role === ROLE.ADMIN ? 20 : (me.role < ROLE.USER ? 1 : 10))
 
     const table = generateTable([
         [
@@ -305,6 +313,10 @@ export function gameSettings() {
             translate('enable grid'),
             `<input type="checkbox" id="enableGridCB" ${tools.grid.state == 1 ? 'checked' : ''}>`
         ],
+        [
+            translate('draw line length'),
+            `<input type="checkbox" id="drawLineLenCB" ${tools.line.drawLength ? 'checked' : ''} title="draw line length near it">`
+        ],
     ]);
 
     $(win.body).append(table);
@@ -330,7 +342,7 @@ export function gameSettings() {
 
     $('#brushSize').on('input', e => {
         updateBrush(e.target.value);
-    })
+    });
 
     $('#savePixelsInp').on('change', e => {
         e = e.target;
@@ -346,7 +358,7 @@ export function gameSettings() {
         setLS('disableColors', checked.toString());
 
         chat.setColors(!checked)
-    })
+    });
 
     $('#chatLimit').on('change', e => {
         const value = parseInt(e.target.value, 10);
@@ -355,7 +367,7 @@ export function gameSettings() {
         setLS('chatLimit', value.toString());
 
         game.chatLimit = value;
-    })
+    });
 
     $('#lightGridCB').on('change', e => {
         const checked = e.target.checked;
@@ -363,7 +375,7 @@ export function gameSettings() {
         setLS('lightGrid', checked.toString());
 
         tools.grid.isLight = checked;
-    })
+    });
 
     $('#enableGridCB').on('change', e => {
         const checked = e.target.checked;
@@ -372,7 +384,15 @@ export function gameSettings() {
 
         if (checked) tools.grid.show();
         else tools.grid.hide();
-    })
+    });
+
+    $('#drawLineLenCB').on('change', e => {
+        const checked = e.target.checked;
+
+        setLS('drawLineLen', checked.toString());
+
+        tools.line.drawLength = checked;
+    });
 }
 
 export async function captchaModal() {
@@ -441,9 +461,16 @@ export function toolsWindow() {
     });
     if (!toolWin.created) return;
 
-    const table = generateTable([
-        [`<button id="searchUsersB">${translate('search users')}</button>`]
-    ]);
+    const tableArr = [
+        [`<a href="/convert" target="_blank">${translate('convert image into palette')}</a>`],
+        [`<button id="screenshot">${translate('save canvas')}</button>`]
+    ]
+
+    if(me.role >= ROLE.MOD){
+        tableArr.unshift([`<button id="searchUsersB">${translate('search users')}</button>`])
+    }
+
+    const table = generateTable(tableArr);
     $(toolWin.body).append(table);
 
     $('#searchUsersB', table).on('click', () => {
@@ -454,9 +481,9 @@ export function toolsWindow() {
         if (!win.created) return;
 
         const table = generateTable([
-            [`<input type="text" placeholder="nickname" id="userSearchText" max="32" style="width:250px"> ${translate('OR')} `+
-            '<input type="text" placeholder="id" id="userSearchId" max="32" style="width:50px">'+
-            `<input type="checkbox" id="searchIsBanned"><label for="searchIsBanned">${translate('banned?')}</label>`],
+            [`<input type="text" placeholder="nickname" id="userSearchText" max="32" style="width:250px"> ${translate('OR')} ` +
+                '<input type="text" placeholder="id" id="userSearchId" max="32" style="width:50px">' +
+                `<input type="checkbox" id="searchIsBanned"><label for="searchIsBanned">${translate('banned?')}</label>`],
             ['<div id="searchUsersBody">']
         ]);
         console.log(table)
@@ -543,6 +570,24 @@ export function toolsWindow() {
             return json
         }
     });
+
+    $('#screenshot').on('click', makeScreenshot);
+}
+
+export function authWindow() {
+    const win = new Window({
+        title: capitalize(translate('LOG IN')),
+        center: true
+    });
+    if (!win.created) return;
+
+    const tableArr = [
+        [`<a href="/api/auth/vk">VK</a>`],
+        [`<a href="/api/auth/discord">DISCORD</a>`]
+    ]
+
+    const table = generateTable(tableArr);
+    $(win.body).append(table);
 }
 
 function createCollapsibleBlock(title, bodyHtml, collapsed = true) {
@@ -620,17 +665,17 @@ export function help() {
     helpWin.body.style.fontSize = '15px';
 
     // TODO move this to translations
-    const intro = createCollapsibleBlock(translate('Introduciton'),
-    `${translate('Goroxels is a multiplayer pixel game with no cooldown! (ok, almost)')}<br>
+    const intro = createCollapsibleBlock(translate('introduction'),
+        `${translate('Goroxels is a multiplayer pixel game with no cooldown! (ok, almost)')}<br>
     ${translate('There are so many tools for make drawing more comfortable!')}<br>
     ${translate('Any Guest of this site can draw, but to get some features (ability to chat with other players, more lower cooldown) you should be registered.')}`, false);
 
-    const howto = createCollapsibleBlock(translate('How to play?'),
-    `${translate('Very simple: you should pick color you need from palette (with pipette or just click) and place the pixel on canvas with LMB.')}<br>
+    const howto = createCollapsibleBlock(translate('how to play?'),
+        `${translate('Very simple: you should pick color you need from palette (with pipette or just click) and place the pixel on canvas with LMB.')}<br>
     ${translate('You can use in-game clicker to place more pixels at time.')}`);
 
-    const tools = createCollapsibleBlock(translate('Tools'),
-    `${translate('Tools Goroxels have:')}<br><br>
+    const tools = createCollapsibleBlock(translate('tools'),
+        `${translate('Tools Goroxels have:')}<br><br>
     ${translate('Clicker. You need to hold whitespace and move your mouse to use it.')}<br>
     ${translate('In the future, it will stop to place pixels continuously to protect arts.')}<br>
     ${translate('Registred and Trusted users can draw with more lower cooldown than Guest users.')}<br>
@@ -643,8 +688,8 @@ export function help() {
     ${translate('For grid use [G].')}<br>
     ${translate('If you placed the pixel(s) wrong, use [Z] (you can switch it to Ctrl+Z) for rollback. Keep holding Z to rollback all your wrong pixels (you can change amount of max saved pixels with Settings).')}<br>`);
 
-    const tools2 = createCollapsibleBlock(translate('Other tools'),
-    `${translate('Multicolour support - brush can draw with a "chess style".')}<br>
+    const tools2 = createCollapsibleBlock(translate('other tools'),
+        `${translate('Multicolour support - brush can draw with a "chess style".')}<br>
     ${translate('Second color can be picked with [Alt+C]. If you picked colors in a wrong order, it is not a big problem - press [X] to reverse it.')}<br>
     ${translate('Hide a upper menu with [L], hide the chat with [K], and hide all an UI: [;].')}<br>
     ${translate('You can paste your picture on the canvas using [Ctrl+V] (only for Registered users); maybe in the future this tool can only be used by Moderators.')}<br>
@@ -652,8 +697,8 @@ export function help() {
     ${translate('Template can be managed with opacity switching tools [O] (your opacity (X) to 0) or from your opacity to max opacity [P].')}<br>
     ${translate('Other tools are tools for testing or can be only used by Moderators.')}`);
 
-    const template = createCollapsibleBlock(translate('Template'),
-    `${translate('Yes, in the Goroxels you can draw by following template! Put image on the canvas with "image URL".')}<br>
+    const template = createCollapsibleBlock(translate('template'),
+        `${translate('Yes, in the Goroxels you can draw by following template! Put image on the canvas with "image URL".')}<br>
     ${translate('When loading a picture, there are can be some troubles. I reccomend to put your picture on <a href="//imgur.com">imgur.com</a>.')}<br>
     ${translate('You can change coordinates by yourself (X and Y), or with help of a dragging (hold [Ctrl]).')}<br>
     ${translate('Convert images to the Goroxels palette with <a href="/convert">Converter</a>. You can also convert image and draw, using a pattern convert!')}<br>
@@ -662,4 +707,37 @@ export function help() {
 
 
     $(helpWin.body).append(intro, howto, tools, tools2, template);
+}
+
+export function onlineViewWindow(json){
+    let win = new Window({
+        title: capitalize(translate('online')),
+        center: true,
+        closeable: true
+    });
+
+    if (!win.created) {
+        win = win.oldWindow;
+    }
+
+    win.body.style.width = '325px';
+    win.moveToCenter();
+
+    const tableArr = [];
+    Object.keys(json).forEach(key => {
+        if(key === 'TOTAL'){
+            win.updateTitle(translate('online') + ` (${json[key]})`, true);
+            return;
+        }
+
+        const firstEl = `<a href="/${key}" target="_shagorox"><h3>${key}<h3></a>`;
+        const secondEl = `<h2>${json[key]}</h2>`;
+
+        tableArr.push([firstEl, secondEl]);
+    })
+
+    const table = generateTable(tableArr);
+
+    $('*', win.body).remove();
+    $(win.body).append(table);
 }
