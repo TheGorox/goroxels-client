@@ -12,6 +12,14 @@ const clrManip = require('./color');
 const bayer = require('./bayerMatrices');
 const importedPatterns = require('./patterns');
 
+import converterWProm from './converterWASM';
+(async () => {
+    const module = await converterWProm
+    console.log(module);
+    window.convModule = module;
+    window.clrManip = clrManip;
+})()
+
 import imgZoom from './imgzoom';
 import openImage from './openImage';
 
@@ -249,6 +257,14 @@ let palUtils = {
                 deFunction = clrManip.mciede2000mix;
                 palette = paletteLAB;
                 break
+            case 'ciede2000cpp':
+                deFunction = convModule.mciede2000;
+                palette = paletteLAB;
+            break
+            case 'ciede2000cpp2':
+                deFunction = convModule.ciede2000;
+                palette = paletteLAB;
+            break
             case 'cmcic':
                 deFunction = clrManip.cmcicMix;
                 palette = paletteLAB;
@@ -482,7 +498,7 @@ $('#palGOBtn').on('click', () => {
 
 $('#palInput').on('keydown', (e) => {
     $('#palInput')[0].dataset.source = "url";
-    if (e.keyCode === 13) {
+    if (e.code === 'Enter') {
         converterPreload();
     }
 });
@@ -811,7 +827,7 @@ $('#patGOBtn').on('click', () => {
 
 $('#patInput').on('keydown', (e) => {
     $('#patInput').data('source', 'url');
-    if (e.keyCode === 13) {
+    if (e.code === 'Enter') {
         patternPreload();
     }
 });

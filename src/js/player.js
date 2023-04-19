@@ -62,6 +62,6 @@ export default {
         this.bucket = new Bucket(delay, max);
     },
     placed: [],
-    maxPlaced: isNaN(+localStorage['maxPlaced']) ? 500 : +localStorage['maxPlaced'],
+    maxPlaced: isNaN(+localStorage['maxPlaced']) ? 5000 : +localStorage['maxPlaced'],
     placedCount: +getLS('placedCount', true) || 0
 }

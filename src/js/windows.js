@@ -26,6 +26,10 @@ import userImg from '../img/user2.png';
 import arrowSvg from '../img/arrow.svg'
 import { capitalize } from './utils/strings';
 
+import vkLogo from '../img/vk-logo.svg';
+import dsLogo from '../img/discord-logo-circle.svg';
+import fbLogo from '../img/fb-logo.svg';
+
 export function generateTable(arr = []) {
     const table = $('<table class="columnTable"></table>');
     arr.forEach(([title, content]) => {
@@ -41,10 +45,6 @@ export function generateTable(arr = []) {
     });
 
     return table
-}
-
-function getKeyAsString(keyCode) {
-    return keys[keyCode] || String.fromCharCode(keyCode)
 }
 
 export function accountSettings() {
@@ -241,7 +241,7 @@ export function uiSettings() {
         toggleEmojis(state);
     });
 
-    $('#emojiList').val(getOrDefault('emojis', '🙁 🤔 😀 💚'));
+    $('#emojiList').val(getOrDefault('emojis', '🙁 🤔 😀 😄 💚 😡 👋 👍 😐'));
     $('#emojiList').on('change', e => {
         setLS('emojis', e.target.value);
         updateEmojis(e.target.value.split(' '));
@@ -277,7 +277,6 @@ export function gameSettings() {
     if (!win.created) return;
 
     // 1 for guests (packets disabled by server), 20 for admins, and 10 for others 
-    console.log(me.role, ROLE.USER)
     let maxBrushSize = (me.role === ROLE.ADMIN ? 20 : (me.role < ROLE.USER ? 1 : 10))
 
     const table = generateTable([
@@ -582,11 +581,16 @@ export function authWindow() {
     if (!win.created) return;
 
     const tableArr = [
-        [`<a href="/api/auth/vk">VK</a>`],
-        [`<a href="/api/auth/discord">DISCORD</a>`]
+        [`<a href="/api/auth/vk"><img src="${vkLogo}" class="authLogo">VK</a>`],
+        [`<a href="/api/auth/discord"><img src="${dsLogo}" class="authLogo">DISCORD</a>`],
+        [`<a href="/api/auth/facebook"><img src="${fbLogo}" class="authLogo">FACEBOOK</a>`]
     ]
 
     const table = generateTable(tableArr);
+
+    $('td', table).css('text-align', 'left');
+    $('a', table).css('margin-left', '15px');
+    
     $(win.body).append(table);
 }
 
@@ -625,8 +629,14 @@ function createCollapsibleBlock(title, bodyHtml, collapsed = true) {
         `max-height: 0;
     overflow: hidden;
     transition: max-height 0.3s linear;
-    font-size: 17px`
-    body.html(bodyHtml);
+    font-size: 20px;`
+
+    const innerBody = $('<div>');
+    innerBody[0].style.cssText =
+        `padding:8px`
+    innerBody.html(bodyHtml);
+
+    body.append(innerBody);
 
     const headBodyContainer = $('<div>');
     headBodyContainer[0].style.cssText =
@@ -662,51 +672,100 @@ export function help() {
 
     helpWin.body.style.width = '90vw'
     helpWin.body.style.height = '90vh'
-    helpWin.body.style.fontSize = '15px';
 
     // TODO move this to translations
-    const intro = createCollapsibleBlock(translate('introduction'),
-        `${translate('Goroxels is a multiplayer pixel game with no cooldown! (ok, almost)')}<br>
-    ${translate('There are so many tools for make drawing more comfortable!')}<br>
-    ${translate('Any Guest of this site can draw, but to get some features (ability to chat with other players, more lower cooldown) you should be registered.')}`, false);
+    const intro = createCollapsibleBlock(translate('intro.introHeader'),
+        `<div style="width:100%;text-align:center;"><img src="./img/goroxels.png" style="vertical-align: middle;">${translate('intro.desc')}</div><br><br>
+    ${translate('intro.desc2')}<br>
+    ${translate('intro.desc3')}`, false);
 
     const howto = createCollapsibleBlock(translate('how to play?'),
-        `${translate('Very simple: you should pick color you need from palette (with pipette or just click) and place the pixel on canvas with LMB.')}<br>
-    ${translate('You can use in-game clicker to place more pixels at time.')}`);
+        `<div style="display:inline-flex">
+            <div>${translate('intro.howToPlayDecs')}</div>
+            <div style="padding-left: 10px;">
+                <video autoplay loop muted style="height:196px"><source src="./video/clickerMouse.webm" type="video/webm"></video>
+            </div>
+        </div>`, false);
 
     const tools = createCollapsibleBlock(translate('tools'),
-        `${translate('Tools Goroxels have:')}<br><br>
-    ${translate('Clicker. You need to hold whitespace and move your mouse to use it.')}<br>
-    ${translate('In the future, it will stop to place pixels continuously to protect arts.')}<br>
-    ${translate('Registred and Trusted users can draw with more lower cooldown than Guest users.')}<br>
-    ${translate('You can quickly switch colors with [A] (previous color) и [S] (next color).')}<br>
-    ${translate('You can also pick color from the canvas using pipette with [C].')}<br>
-    ${translate('And so, brush size can be controlled (unavailable to Guests) with help of [ ] keys.')}<br>
-    ${translate('Straight lines are so important to make art. You can use them with help of your mouse and [Shift].')}<br>
-    ${translate('And so, the most important tool - Floodfill. [F], it helps so much to fill area with color. Hold this key for preview. If everything suits you, click [F] again.')}<br>
-    ${translate('If you need to quickly reset color(s), click RMB on canvas.')}<br>
-    ${translate('For grid use [G].')}<br>
-    ${translate('If you placed the pixel(s) wrong, use [Z] (you can switch it to Ctrl+Z) for rollback. Keep holding Z to rollback all your wrong pixels (you can change amount of max saved pixels with Settings).')}<br>`);
+        `${translate('intro.toolsDecs')}<br><br>
+    <div class="helpWithVideoCont">
+        <div>${translate('intro.toolsClicker')}<br><br></div>
+        <div class="desktop">
+            <video autoplay loop muted style="height:196px"><source src="./video/clicker.webm" type="video/webm"></video>
+        </div>
+    </div><br>
+    <div class="helpWithVideoCont">
+        <div>${translate('intro.toolsAS')}<br><br></div>
+        <div class="desktop">
+            <video autoplay loop muted style="height:196px"><source src="./video/as.webm" type="video/webm"></video>
+        </div>
+    </div><br>
+    <div class="helpWithVideoCont">
+        <div>${translate('intro.toolC')}<br><br></div>
+        <div class="desktop">
+            <video autoplay loop muted style="height:196px"><source src="./video/toolC.webm" type="video/webm"></video>
+        </div>
+    </div><br>
+    <div class="helpWithVideoCont">
+        <div>${translate('intro.brush')}<br><br></div>
+        <div class="desktop">
+            <video autoplay loop muted style="height:196px"><source src="./video/brush2.webm" type="video/webm"></video>
+        </div>
+    </div><br>
+    <div class="helpWithVideoCont">
+        <div>${translate('intro.line')}<br><br></div>
+        <div class="desktop">
+            <video autoplay loop muted style="height:196px"><source src="./video/line.webm" type="video/webm"></video>
+        </div>
+    </div><br>
+    <div class="helpWithVideoCont">
+        <div>${translate('intro.flood')}<br><br></div>
+        <div class="desktop">
+            <video autoplay loop muted style="height:196px"><source src="./video/flood.webm" type="video/webm"></video>
+        </div>
+    </div><br>
+    <div class="helpWithVideoCont">
+        <div>${translate('intro.grid')}<br><br></div>
+        <div class="desktop">
+            <img src="./img/unavailable.png" style="height:196px">
+        </div>
+    </div><br>
+    <div class="helpWithVideoCont">
+        <div>${translate('intro.ctrlZ')}<br><br></div>
+        <div class="desktop">
+            <video autoplay loop muted style="height:196px"><source src="./video/ctrlZ.webm" type="video/webm"></video>
+        </div>
+    </div><br>
+    ${translate('intro.resetColors')}<br>`);
 
-    const tools2 = createCollapsibleBlock(translate('other tools'),
-        `${translate('Multicolour support - brush can draw with a "chess style".')}<br>
-    ${translate('Second color can be picked with [Alt+C]. If you picked colors in a wrong order, it is not a big problem - press [X] to reverse it.')}<br>
-    ${translate('Hide a upper menu with [L], hide the chat with [K], and hide all an UI: [;].')}<br>
-    ${translate('You can paste your picture on the canvas using [Ctrl+V] (only for Registered users); maybe in the future this tool can only be used by Moderators.')}<br>
-    ${translate('Click [U] to send coords to the chat. Coords in the chat are able to click.')}<br>
-    ${translate('Template can be managed with opacity switching tools [O] (your opacity (X) to 0) or from your opacity to max opacity [P].')}<br>
-    ${translate('Other tools are tools for testing or can be only used by Moderators.')}`);
+    const tools2 = createCollapsibleBlock(translate('intro.tools2header'),
+        `<div style="width:100%;text-align:center;"><b>${translate('intro.tools2desc')}</b></div><br><br>
+    ${translate('intro.toolsHiders')}<br><br>
+    ${translate('intro.multicol')}<br>
+    ${translate('intro.multicol2')}<br>
+    ${translate('intro.multicol3')}<br><br>
+    ${translate('intro.sendCoords')}<br><br>
+    ${translate('intro.templateTools')}<br>`);
 
     const template = createCollapsibleBlock(translate('template'),
-        `${translate('Yes, in the Goroxels you can draw by following template! Put image on the canvas with "image URL".')}<br>
-    ${translate('When loading a picture, there are can be some troubles. I reccomend to put your picture on <a href="//imgur.com">imgur.com</a>.')}<br>
-    ${translate('You can change coordinates by yourself (X and Y), or with help of a dragging (hold [Ctrl]).')}<br>
-    ${translate('Convert images to the Goroxels palette with <a href="/convert">Converter</a>. You can also convert image and draw, using a pattern convert!')}<br>
-    ${translate('Recommendations: first, convert to the palette, copy converted image and paste it in the pattern converter. When it ready, click "upload on imgur" and copy link you get to the "image URL". Patterns will make your drawing process more relaxing and enjoyable!')}<br>
-    ${translate('If url is red, image you picked is so big. Try to cut your image with parts.')}`);
+        `<div style="width:100%;text-align:center;"><b>${translate('intro.templateIntro')}</b></div><br><br>
+    ${translate('intro.templateDesc')}<br><br>
+    ${translate('intro.templateDescConvert')}<br><br>
+    <div class="helpWithVideoCont">
+        <div>${translate('intro.templateDescReminder')}<br><br></div>
+        <div class="desktop">
+            <video autoplay loop muted style="height:196px"><source src="./video/patternDemo.webm" type="video/webm"></video>
+        </div>
+    </div><br>`);
+
+    const author = createCollapsibleBlock(translate('intro.authorHeader'),
+        `${translate('intro.authorText')}<br>
+        ${translate('intro.authorContacts')}<br>
+        <div style="text-align:center"><img src="./img/3rdcf.png" title="ТРЕТЬЯ КОНФА"></div>`);
 
 
-    $(helpWin.body).append(intro, howto, tools, tools2, template);
+    $(helpWin.body).append(intro, howto, tools, tools2, template, author);
 }
 
 export function onlineViewWindow(json){

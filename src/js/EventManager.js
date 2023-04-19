@@ -20,7 +20,7 @@ export default class EventManager extends EventEmitter {
         // true from when two pointers started touch
         // until both of them off
         this.startedGesture = false,
-        this.pointers = 0;
+            this.pointers = 0;
         function checkGesture(evName) {
             let wasGesture = this.startedGesture;
             if (evName === 'up') {
@@ -34,13 +34,39 @@ export default class EventManager extends EventEmitter {
         }
         checkGesture = checkGesture.bind(this)
 
+        // some of my friends has an issue where 
+        // event.movementX/Y sometimes was not present
+        let pointerMovementWorkaround = {};
+
+        const FFA_REPLACE_MOVEMENT = true;
+
         element.addEventListener('pointerdown', e => {
             e.gesture = checkGesture('down');
             this.emit('mousedown', e);
         });
         document.addEventListener('pointermove', e => {
+            if (FFA_REPLACE_MOVEMENT || !e.movementX || !e.movementY) {
+                // by default, movementX and movementY are read only
+                Object.defineProperty(e, 'movementX', {
+                    writable: true
+                });
+                Object.defineProperty(e, 'movementY', {
+                    writable: true
+                });
+
+                let lastPos = pointerMovementWorkaround[e.pointerId];
+                if (!lastPos) {
+                    e.movementX = 0;
+                    e.movementY = 0;
+                } else {
+                    e.movementX = e.clientX - lastPos[0];
+                    e.movementY = e.clientY - lastPos[1];
+                }
+
+                pointerMovementWorkaround[e.pointerId] = [e.clientX, e.clientY];
+            }
             // not emitted because Interactjs below will emit this correctly
-            if(!checkGesture('move')){
+            if (!checkGesture('move')) {
                 this.emit('mousemove', e);
             }
         });
@@ -49,8 +75,10 @@ export default class EventManager extends EventEmitter {
             e.gesture = checkGesture('up');
 
             // emit event only if 'pointerdown' event was on canvas
-            if(pointersCnt)
+            if (pointersCnt)
                 this.emit('mouseup', e);
+
+            delete pointerMovementWorkaround[e.pointerId];
         });
 
         interact(element).gesturable({

@@ -49,12 +49,17 @@ export default class ToolManager extends EventEmitter {
         this.loadBinds();
         this.initEvents();
 
+        this.ctrlDown = false;
+        this.altDown = false;
+
         me.callOnLoaded(this.filterTools.bind(this));
     }
 
     filterTools() {
         Object.keys(this.tools).forEach(name => {
             if (this.tools[name].requiredRole > me.role) {
+                delete this._keyBinds[this.tools[name].key];
+
                 if (isMobile) {
                     $(`#tool_${name}`).remove();
                 }
@@ -98,10 +103,6 @@ export default class ToolManager extends EventEmitter {
                     this._keyBinds[tool.key] = tool;
             }
         })
-
-        // TODO make another css class/id for that
-        if (!isMobile)
-            document.getElementById('tools').style.cssText = 'display:none !important';
     }
 
     initEvents() {
@@ -173,9 +174,6 @@ export default class ToolManager extends EventEmitter {
                 const tool = this._keyBinds[str];
 
                 if (tool) {
-                    e.preventDefault();
-                    e.stopPropagation();
-
                     // TODO
                     this.tool = tool; // костыль, переделать
                     // Как? подписываться на mousemove при down
@@ -219,8 +217,21 @@ export default class ToolManager extends EventEmitter {
 
                 camera.moveTo((dx / oldZoom), (dy / oldZoom));
                 camera.moveTo(-(dx / camera.zoom), -(dy / camera.zoom));
+
+                if(localStorage.getItem('iHaveProblems') === 'yes'){
+                    camera.x = Math.round(camera.x); camera.y = Math.round(camera.y);
+                    globals.renderer.needRender = true;
+                }
             });
         }
+
+        function specKeysHandlers(e){
+            this.ctrlDown = e.ctrlKey;
+            this.altDown = e.altKey;
+        }
+
+        em.on('keydown', specKeysHandlers.bind(this));
+        em.on('keyup', specKeysHandlers.bind(this));
 
         // TODO: add listener directly to ToolManager, istead of tool itself, avoiding cyclic check
         em.on('tick', e => {

@@ -60,7 +60,6 @@ export default class Socket extends EventEmitter {
             Object.values(globals.users).forEach(u => u.close(u.id));
 
             setTimeout(() => {
-                // TODO modal or toastr warning
                 console.log('reconnect');
                 this.reconnect();
             }, Math.random()*5000);
@@ -107,7 +106,8 @@ export default class Socket extends EventEmitter {
                     nick: name,
                     userId,
                     id,
-                    registered
+                    registered,
+                    role
                 } = decoded;
 
                 let sameUser;
@@ -119,7 +119,7 @@ export default class Socket extends EventEmitter {
                     globals.users[id] = sameUser;
                     sameUser.newConnection(id);
                 }else{
-                    globals.users[id] = new User(name, id, userId, registered);
+                    globals.users[id] = new User(name, id, userId, registered, role);
                 }
 
                 break
@@ -154,7 +154,7 @@ export default class Socket extends EventEmitter {
             }
 
             case STRING_OPCODES.alert: {
-                // todo :)))
+                // todo нормальный попап
                 toastr.info(decoded.msg, 'ALERT', {
                     timeOut: 1000*60*5,
                     extendedTimeOut: 1000*60*5
@@ -169,6 +169,11 @@ export default class Socket extends EventEmitter {
 
             case STRING_OPCODES.reload: {
                 location.reload();
+                break
+            }
+
+            case STRING_OPCODES.reloadChunks: {
+                globals.chunkManager.reloadChunks();
                 break
             }
         }
@@ -198,23 +203,7 @@ export default class Socket extends EventEmitter {
 
                 const id = dv.getUint32(5);
 
-                // TODO move it somewhere
-                const user = globals.users[id];
-                if(user) user.updateCoords(col, x, y);
-
-                const key = x + ',' + y;
-                let timeout = this.pendingPixels[key];
-                if(timeout){
-                    clearTimeout(timeout);
-                    delete this.pendingPixels[key];
-                }
-
-                this.emit('place', x, y, col, id);
-
-                // does not work, id is not player id
-                if(id === player.id)
-                    updatePlaced(player.placedCount++);
-
+                this.onIncomingPixel([x, y, col], id);
                 break
             }
 
@@ -243,7 +232,48 @@ export default class Socket extends EventEmitter {
                 
                 break
             }
+
+            case OPCODES.ping: {
+                this.socket.send(new Uint8Array([OPCODES.ping]));
+                break
+            }
+
+            case OPCODES.placeBatch: {
+                const PIXEL_LENGTH = 8;
+
+                const totalPixels = (dv.byteLength-1) / PIXEL_LENGTH;
+                if(totalPixels % 1 !== 0){
+                    console.warn('TotalPixels length is not integer');
+                }
+
+                for(let off = 1; off < dv.byteLength; off += PIXEL_LENGTH){
+                    const pixelData = dv.getUint32(off);
+                    const placerId = dv.getUint32(off+4);
+
+                    const pixel = unpackPixel(pixelData);
+                    this.onIncomingPixel(pixel, placerId);
+                }
+                break
+            }
         }
+    }
+
+    onIncomingPixel([x, y, col], id){
+        const user = globals.users[id];
+        if(user) user.updateCoords(col, x, y);
+
+        const key = x + ',' + y;
+        let timeout = this.pendingPixels[key];
+        if(timeout){
+            clearTimeout(timeout);
+            delete this.pendingPixels[key];
+        }
+
+        this.emit('place', x, y, col, id);
+
+        // does not work, id is not player id
+        if(id === player.id)
+            updatePlaced(player.placedCount++);
     }
 
     requestChunk(x, y) {
@@ -298,14 +328,20 @@ export default class Socket extends EventEmitter {
         this.socket.send(JSON.stringify(packet));
     }
 
-    sendChatMessage(text, channel) {
+    sendChatMessage(text, channel, whisper=false) {
         const packet = {
             c: STRING_OPCODES.chatMessage,
             msg: text,
             ch: channel
         }
 
+        if(whisper) packet.whisper = whisper;
+
         this.socket.send(JSON.stringify(packet));
+    }
+
+    sendChatWhisper(text, channel, whisperId){
+        return this.sendChatMessage(text, channel, whisperId);
     }
 
     sendAlert(to, text){

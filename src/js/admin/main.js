@@ -1,20 +1,26 @@
 // TODO add protected pixels support
 
+import '../../css/waiter.css'
+import '../../img/sha.jpg'
 import '../../../node_modules/toastr/build/toastr.css'
 
 import querystring from 'querystring'
 import { rgb2uint32 } from '../convert/color'
-import pako from 'pako'
 import { ROLE } from '../../../../goroxels-server/src/constants'
 
 let canvases;
 
-async function apiRequest(path, args, isPost = false) {
+async function apiRequest(path, args, isPost = false, isBinary = false) {
+    // this is shit
     const query = querystring.stringify(args)
 
     const resp = await fetch('/api/' + path + '?' + query, {
         method: isPost ? 'POST' : 'GET'
     });
+
+    if(resp.headers.get('Content-Type').startsWith('plain/binary') || isBinary){
+        return await resp.arrayBuffer();
+    }
     const json = await resp.json();
 
     if (json.errors) {
@@ -25,17 +31,113 @@ async function apiRequest(path, args, isPost = false) {
     return json
 }
 
-async function initBackup() {
+// returns cancelAnimation callback
+function addWaiter(container){
+    const el = 
+    $(`<div class="waitContainer" style="opacity: 0">
+        <div class="waitElement">
+            <div class="waitShape"></div>
+            <div class="waitShape"></div>
+            <div class="waitShape"></div>
+            <div class="waitShape"></div>
+        </div>
+    </div>`);
 
+    const rect = container.getBoundingClientRect();
 
+    $(container).append(el);
 
-    for (let i = 0; i < canvases.length; i++) {
-        const canvas = canvases[i];
-        $('#canvasSelect').append(
-            `<option value="${i}" ${i === 0 ? 'selected' : ''}>${canvas.name}</option>`
-        )
+    el.css('top', rect.top)
+        .css('left', rect.left)
+        .css('width', rect.width)
+        .css('height', rect.height);
+    
+    setTimeout(() => {
+        el.css('opacity', 1);
+    })
+
+    return () => {
+        el.remove();
+    }
+}
+
+function parseBackupResponse(respAB){
+    const respUI8 = new Uint8Array(respAB);
+
+    let curChar, currentOffset = 0;
+    while(curChar !== 0){
+        curChar = respUI8[currentOffset++];
+        if(currentOffset > 0xffff){
+            throw new Error('Metadata length is too long, aborting');
+        }
     }
 
+    const metadataText = new TextDecoder().decode(respUI8.subarray(0, currentOffset-1));
+
+    const metadata = JSON.parse(metadataText);
+
+    const chunkLength = metadata.chunkSize**2;
+
+    const chunks = {};
+    for (let cx = 0; cx < metadata.width; cx++) {
+        for (let cy = 0; cy < metadata.height; cy++) {
+            const key = `${cx},${cy}`;
+            const localOffset = chunkLength*(cx+cy*metadata.width)
+            const offset = currentOffset+localOffset;
+            chunks[key] = respUI8.subarray(offset, offset+chunkLength);
+        }
+    }
+
+    return {
+        metadata, chunks
+    }
+}
+
+async function initBackup() {
+    function getCropVals(){
+        if (!$("#cropCB").is(':checked')) {
+            $('#cropXStart,#cropYStart,#cropXEnd,#cropYEnd').removeAttr('placeholder');
+            return null
+        };
+
+        let cropXstart = $('#cropXStart').val();
+        let cropYstart = $('#cropYStart').val();
+        let cropXend = $('#cropXEnd').val();
+        let cropYend = $('#cropYEnd').val();
+
+        if(!cropXstart.length){
+            cropXstart = 0;
+            $('#cropXStart').attr('placeholder', cropXstart);
+        }
+        if(!cropYstart.length){
+            cropYstart = 0;
+            $('#cropYStart').attr('placeholder', cropYstart);
+        }
+
+        if(!cropXend.length){
+            cropXend = cropXstart
+            $('#cropXEnd').attr('placeholder', cropXend);
+        }
+        if(!cropYend.length){
+            cropYend = cropYstart
+            $('#cropYEnd').attr('placeholder', cropYend);
+        }
+
+        cropXstart = +cropXstart;
+        cropXend = +cropXend;
+        cropYstart = +cropYstart;
+        cropYend = +cropYend;
+
+        if (cropXstart < 0 || cropXstart > cropXend ||
+            cropYstart < 0 || cropYstart > cropYend) {
+            return null
+        }
+
+        return {
+            cropXstart, cropXend, 
+            cropYstart, cropYend
+        }
+    }
     async function updateDays(canvas) {
         let days = await apiRequest('admin/backup/getDays', { canvas });
         if (!days) return false;
@@ -73,14 +175,26 @@ async function initBackup() {
     let lastData = {};
     async function updateBackup(canvas, day, time, forceUpdate) {
         // TODO cache rendered and uncompressed canvas instead?
+        let waiterCB = null;
         if (forceUpdate) {
-            lastData = await apiRequest('admin/backup/getBackup', { canvas, day, time })
-            if (!lastData) return false;
+            const canvasCont = $('#bkCanvasWrapper')[0]
+            if(canvasCont)
+                waiterCB = addWaiter(canvasCont);
+
+            let resp = await apiRequest('admin/backup/getBackup', { canvas, day, time }, false, true);
+            if(!resp) return;
+
+            lastData = parseBackupResponse(resp);           
         }
 
         const timer = Date.now();
         renderBackup(lastData.chunks, lastData.metadata, getCurrentChunkCrop(), isUseGrid());
         console.log('renderBackup in ' + (Date.now() - timer));
+        createZoomView($('#bkCanvasWrapper>canvas')[0]);
+
+        if(waiterCB){
+            waiterCB();
+        }
     }
 
     function renderBackup(chunks, metadata, crop, useGrid) {
@@ -115,9 +229,6 @@ async function initBackup() {
         const imgData = ctx.createImageData(width, height);
         const u32a = new Uint32Array(imgData.data.buffer);
 
-        let rawData = new Uint8Array(chunkSize * chunkSize),
-            encodedBuf;
-
         Object.keys(chunks).forEach(chunkId => {
             const [cx, cy] = chunkId.split(',').map(x => +x);
             if (crop !== null) {
@@ -127,15 +238,7 @@ async function initBackup() {
                 }
             }
 
-            let encodedData = chunks[chunkId];
-            encodedData = atob(encodedData);
-            encodedBuf = new Uint8Array(encodedData.length);
-
-            for (let i = 0; i < encodedData.length; i++) {
-                encodedBuf[i] = encodedData.charCodeAt(i);
-            }
-
-            rawData = pako.inflate(encodedBuf);
+            let rawData = chunks[chunkId];
 
             let color, i = 0, j, preY;
 
@@ -147,6 +250,13 @@ async function initBackup() {
             for (let y = startY; y < endY; y++) {
                 preY = y * width
                 for (let x = startX; x < endX; x++) {
+                    if(x < 3 && y == 0){
+                        console.log({
+                            x, y,
+                            rdn: rawData[i] & 0x7F,
+                            rd: rawData[i]
+                        })
+                    }
                     color = encodedPal[rawData[i++] & 0x7F];
                     j = x + preY;
 
@@ -161,7 +271,7 @@ async function initBackup() {
             ctx.beginPath();
 
             ctx.strokeStyle = 'red';
-            ctx.lineWidth = width / 133.3;
+            ctx.lineWidth = 3;
             ctx.setLineDash([ctx.lineWidth / 0.75, ctx.lineWidth / 0.66666]);
 
             for (let y = chunkSize; y < height - 1; y += chunkSize) {
@@ -211,14 +321,15 @@ async function initBackup() {
         }
 
         $('#backupContainer *').remove();
-        $('#backupContainer').append(canvas);
+        $('#backupContainer').append($('<div id="bkCanvasWrapper">'));
+        $('#bkCanvasWrapper').append(canvas);
 
         // убрать
         $('body').scrollTop(999);
     }
 
     function getCurrentCanvas() {
-        return $('#canvasSelect').val()
+        return $('#buCanvasSelect').val()
     }
 
     function getCurrentDay() {
@@ -236,15 +347,17 @@ async function initBackup() {
     function getCurrentChunkCrop() {
         if (!$("#cropCB").is(':checked')) return null;
 
-        let cropXstart = +$('#cropXStart').val() || 0;
-        let cropYstart = +$('#cropYStart').val() || 0;
-        let cropXend = +$('#cropXEnd').val() || 0;
-        let cropYend = +$('#cropYEnd').val() || 0;
-
-        if (cropXstart < 0 || cropXstart > cropXend ||
-            cropYstart < 0 || cropYstart > cropYend) {
-            return null
+        const vals = getCropVals();
+        if(!vals){
+            return null;
         }
+
+        const {
+            cropXstart, cropXend, 
+            cropYstart, cropYend
+        } = vals;
+
+
         return {
             startX: cropXstart,
             startY: cropYstart,
@@ -294,7 +407,7 @@ async function initBackup() {
             $('#cropRollbackCB').attr('disabled', '');
     })
 
-    $('#canvasSelect').on('change', onCanvasUpdated);
+    $('#buCanvasSelect').on('change', onCanvasUpdated);
     $('#dateSelect').on('change', async () => {
         await updateTimes(getCurrentCanvas(), getCurrentDay());
         onSomethingChanged(true);
@@ -351,6 +464,7 @@ async function initBackup() {
         toastr.error(e);
     });
 }
+
 function initIP() {
     $('#sendIps').on('click', async () => {
         const act = $('input[name="ipAction"]:checked').val();
@@ -423,7 +537,49 @@ function initOther() {
             console.log(json);
         }
     });
+
+    initApplyMask();
 }
+function initApplyMask(){
+    const fileInp = $('#protectMaskFile');
+    let lastFile;
+    fileInp.on('change', e => {
+        if(fileInp[0].files.length){
+            const file = fileInp[0].files[0];
+            lastFile = file;
+            $('label[for=protectMaskFile]').text(file.name);
+        }else{
+            $('label[for=protectMaskFile]').text('Choose image');
+        }
+    })
+
+    $('#submitProtectMask').on('click', async () => {
+        if(!lastFile) return;
+
+        const x = +$('#protectMaskXOff').val();
+        const y = +$('#protectMaskYOff').val();
+
+        if([x,y].some(n => {
+            return (isNaN(n) || n < 0)
+        })) return;
+
+        const canvas = $('#pmCanvasSelect').val();
+
+        const fd = new FormData();
+        fd.append('x', x);
+        fd.append('y', y);
+        fd.append('canvas', canvas);
+        fd.append('img', lastFile);
+
+        const resp = await fetch('/api/admin/canvas/applyProtectMask', {
+            method: 'POST',
+            body: fd
+        });
+        const respJson = await resp.json();
+        respJson?.errors?.forEach(e => toastr.error(e));
+    })
+}
+
 function initCanvasActions() {
     canvases.forEach((canv, id) => {
         $('#selectActCanvas').append(`<option value="${id}">${canv.name}</option>`);
@@ -489,6 +645,63 @@ async function loadConfig() {
     return await resp.json();
 }
 
+/**
+ * 
+ * @param {HTMLCanvasElement} canvas 
+ */
+function createZoomView(canvas){
+    const size = 200;
+    const halfSize = size/2|0;
+
+    $('#zoomedCanvasView').remove();
+
+    const zoomedViewCanvas = document.createElement('canvas');
+    zoomedViewCanvas.id = 'zoomedCanvasView';
+    zoomedViewCanvas.width = zoomedViewCanvas.height = size;
+    zoomedViewCanvas.style.cssText = 
+    `border: 1px solid black; \nposition: absolute; \ndisplay: none`
+
+    document.body.appendChild(zoomedViewCanvas);
+
+    const ctx = zoomedViewCanvas.getContext('2d');
+    const origCtx = canvas.getContext('2d');
+
+    const rect = canvas.getBoundingClientRect();
+    const canvasSizeDiffX = canvas.width/rect.width;
+    const canvasSizeDiffY = canvas.height/rect.height;
+
+    canvas.addEventListener('mousemove', e => {
+        zoomedViewCanvas.style.display = ''
+
+        const posX = Math.max(e.offsetX, 0);
+        const posY = Math.max(e.offsetY, 0);
+
+        const cordX = posX*canvasSizeDiffX;
+        const cordY = posY*canvasSizeDiffY;
+
+        const leftBound = cordX - halfSize;
+        const topBound = cordY - halfSize;
+
+        const rightBound = cordX + halfSize;
+        const bottomBound = cordY + halfSize;
+
+        render(leftBound, topBound, rightBound, bottomBound);
+
+        zoomedViewCanvas.style.left = (e.clientX+10) + 'px';
+        zoomedViewCanvas.style.top = (e.clientY+10) + 'px';
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+        zoomedViewCanvas.style.display = 'none';
+    });
+
+
+    function render(startX, startY, endX, endY){
+        const imdata = origCtx.getImageData(startX, startY, endX-startX, endY-startY);
+        ctx.putImageData(imdata, 0, 0);
+    }
+}
+
 (async () => {
     let resp;
     try {
@@ -516,6 +729,13 @@ async function loadConfig() {
             }
             break
         }
+    }
+
+    for (let i = 0; i < canvases.length; i++) {
+        const canvas = canvases[i];
+        $('.canvasSelect').append(
+            `<option value="${i}" ${i === 0 ? 'selected' : ''}>${canvas.name}</option>`
+        )
     }
 
     initBackup();

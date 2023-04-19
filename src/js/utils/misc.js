@@ -70,7 +70,8 @@ export function htmlspecialchars(text) {
 }
 
 export function getRecommendedColorSize() {
-    const max = 24;
+    if(globals.mobile) return 24;
+    const max = 30;
     const p = $('#palette');
     // 14 is for palette padding 
     let size = Math.floor((window.innerWidth - 14) / p.children().length);

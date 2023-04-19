@@ -17,16 +17,29 @@ export default {
             this.id = newMe.id;
         }
 
+        this.updateRoleRelatedHtml();
+    },
+
+    updateRoleRelatedHtml(){
+        $('.minrole-admin').hide();
+        $('.minrole-mod').hide();
+        $('.minrole-trusted').hide();
+        $('.minrole-user').hide();
+
         switch(this.role){
-            case ROLE.USER:
-                $('.admin').hide();
-                $('.mod').hide();
-                break
             case ROLE.ADMIN:
-                $('.admin').show();
+                $('.minrole-admin').show();
             case ROLE.MOD:
-                $('.mod').show();
+                $('.minrole-mod').show();
+            case ROLE.TRUSTED:
+                $('.minrole-trusted').show();
+            case ROLE.USER:
+                $('.minrole-user').show();
         }
+    },
+
+    checkCanGetUserInfo(){
+        return this.registered && this.role >= ROLE.TRUSTED
     },
 
     async load(){

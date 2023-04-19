@@ -445,7 +445,7 @@ var colorManip = {
         const dC = C1 - C2;
 
         // and the funky distance between differences to find the Hue component
-        const dH = sqrt(da ^ 2 + db ^ 2 - dC ^ 2);
+        const dH = Math.sqrt(da ^ 2 + db ^ 2 - dC ^ 2);
 
         // industry specific adjustments (see above)
         const SC = 1 + K1 * C1;

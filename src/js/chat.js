@@ -150,6 +150,8 @@ class Chat {
     }
 
     addMessage(message) {
+        $('.showChat').addClass('showChat-notify');
+
         if (message.server)
             return this.addServerMessage(message.msg);
 
@@ -194,7 +196,9 @@ class Chat {
 
     addLocalMessage(text) {
         text = this.parseColors(text);
+        text = this.parseBB(text);
         text = this.parseCoords(text);
+        text = this.parseImage(text);
 
         const msgEl = $(
             `<div class="chatMessage">
@@ -222,20 +226,47 @@ class Chat {
         if (message.startsWith('/')) {
             this.handleCommand(message);
         } else
-            globals.socket.sendChatMessage(message, canvasName);
+        globals.socket.sendChatMessage(message, canvasName);
+    }
+
+    sendWhisper(target, message){
+        globals.socket.sendChatWhisper(message, canvasName, target);
     }
 
     // handles chat commands
     handleCommand(command) {
-        let args = command.split(' ').slice(1);
+        let args = command.split(' ');
 
-        // currently works shitty
-        if (command.startsWith('/mute')) {
-            const nick = args.join(' ');
-            this.mute(nick);
-        } else if (command.startsWith('/unmute')) {
-            const nick = args.join(' ');
-            this.unmute(nick);
+        const cmd = args[0];
+        args = args.slice(1);
+
+        console.log(args);
+
+        switch(cmd){
+            case '/mute': {
+                const nick = args.join(' ');
+                this.mute(nick);
+
+                break
+            }
+            case '/unmute': {
+                const nick = args.join(' ');
+                this.unmute(nick);
+
+                break
+            }
+            case '/w': {
+                if(args.length < 2){
+                    return this.addLocalMessage('Usage: /w &lt;targetAccountId&gt; &lt;message&gt;');
+                }
+                const id = args[0];
+                const msg = args.slice(1).join(' ');
+
+                this.sendWhisper(id, msg);
+                chatInput.val(`/w ${id} `);
+
+                break
+            }
         }
     }
 

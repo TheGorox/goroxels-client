@@ -17,8 +17,9 @@ export default class ChunkManager {
 
         globals.socket.on('chunk', (cx, cy, cdata) => {
             let key = this.getChunkKey(cx, cy);
-            if (!this.loadingChunks.has(key)) return
-            this.loadingChunks.delete(key);
+            if (this.loadingChunks.has(key)){
+                this.loadingChunks.delete(key);
+            }
 
             let chunk = new Chunk(cx, cy, cdata);
             this.chunks.set(key, chunk);
@@ -41,6 +42,20 @@ export default class ChunkManager {
 
     getChunkKey(x, y) {
         return x << 4 | y
+    }
+
+    reloadChunks(){
+        this.test = true;
+        let loadQueue = [...this.chunks.values()];
+        const interval = setInterval(() => {
+            if(this.loadingChunks.size < 3){
+                const chunk = loadQueue.pop();
+                if(!chunk){
+                    return clearInterval(interval);
+                }
+                this.loadChunk(chunk.x, chunk.y);
+            }
+        }, 30)
     }
 
     loadChunk(x, y) {

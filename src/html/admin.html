@@ -38,6 +38,11 @@
             margin: 5px;
         }
 
+        #bkCanvasWrapper {
+            width: fit-content;
+            height: fit-content;
+        }
+
         #backupContainer canvas {
             max-width: min(50vw, 70vh);
         }
@@ -55,6 +60,10 @@
         .line {
             margin-bottom: 2px;
         }
+
+        #protectMaskFile{
+            display: none;
+        }
     </style>
 </head>
 
@@ -62,7 +71,7 @@
     <div class="mod">
         <h2 class="translate">Backup Viewer</h2>
         <div class="line inline">
-            <select id="canvasSelect">
+            <select id="buCanvasSelect" class="canvasSelect">
                 <option disabled class="translate">SELECT CANVAS</option>
             </select>
             <select id="dateSelect">
@@ -86,7 +95,7 @@
             <input type="number" id="cropXEnd" class="cropInput"></input>,
             <input type="number" id="cropYEnd" class="cropInput"></input>
 
-            <input type="checkbox" id="cropRollbackCB" disabled>
+            <input type="checkbox" id="cropRollbackCB" disabled checked="1">
             <label for="cropRollbackCB" class="translate">Crop rollback too</label>
         </div>
         <div id="backupContainer"></div><br>
@@ -115,6 +124,16 @@
         <div class="inline-flex line" class="translate">
             <span class="translate">set afterJoinDelay value</span>&nbsp;
             <input type="number" id="joinDelay" style="width: 40px;">&nbsp;<button id="sendJoinDelay">set</button>
+        </div><br>
+        <div class="inline-flex line" class="translate">
+            <span class="translate">apply protect mask</span>&nbsp;
+            <select id="pmCanvasSelect" class="canvasSelect"></select>
+            x: <input type="number" id="protectMaskXOff" value="0"></input>&nbsp;
+            y: <input type="number" id="protectMaskYOff" value="0"></input>&nbsp;
+            <button><label for="protectMaskFile">Choose image</label></button>
+            <input type="file" accept="image/png" id="protectMaskFile">&nbsp;
+
+            <button id="submitProtectMask">submit</button>
         </div>
         <div class="superadmin">
             <h2 class="translate">Canvas Actions</h2>

@@ -12,13 +12,16 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const srcDir = path.resolve(__dirname, 'src');
 
 const config = {
+    // experiments: {
+    //     syncWebAssembly: true
+    // },
     entry: {
         game: path.resolve(srcDir, 'js/main.js'),
         converters: path.resolve(srcDir, 'js/convert/main.js'),
         admin: path.resolve(srcDir, 'js/admin/main.js')
     },
     output: {
-        filename: '[name].bundle.js',
+        filename: '[name].[chunkhash].bundle.js',
         path: path.resolve(__dirname, 'dist'),
         publicPath: '.'
     },
@@ -41,6 +44,16 @@ const config = {
                     name: '[name].[ext]'
                 }
             }]
+        },
+        {
+            include: path.resolve(srcDir, 'video'),
+            use: [{
+                loader: 'file-loader',
+                options: {
+                    outputPath: '/video/',
+                    name: '[name].[ext]'
+                }
+            }]
         }, {
             include: path.resolve(srcDir, 'font'),
             use: [{
@@ -55,13 +68,35 @@ const config = {
             use: [MiniCssExtractPlugin.loader, {
                 loader: 'css-loader',
                 options: {
-                    modules: false,
+                    modules: false
                 }
             }],
+        },
+
+        // workaround for converters
+        {
+            test: /converter\.js$/,
+            loader: `exports-loader`,
+            options: {
+                type: `module`,
+                exports: `converter`,
+            },
+        },
+        {
+            test: /converter\.wasm$/,
+            use: [{
+                loader: 'file-loader',
+                options: {
+                    outputPath: '/wasm/',
+                    name: 'converter.wasm'
+                }
+            }]
         }]
     },
     plugins: [
-        new MiniCssExtractPlugin(),
+        new MiniCssExtractPlugin({
+            filename: '[name].[contenthash].css'
+        }),
         new HtmlWebpackPlugin({
             filename: 'index.html',
             template: path.resolve(srcDir, 'html/index.html'),
@@ -84,9 +119,22 @@ const config = {
         new webpack.ProvidePlugin({
             '$': 'jquery',
             'toastr': 'toastr'
-        }),
-        //new JavaScriptObfuscator()
-    ]
+        })
+    ],
+    optimization: {
+        splitChunks: {
+            name: 'penis',
+            hidePathInfo: true,
+            chunks: 'all',
+            cacheGroups: {
+                vendors: {
+                    test: /[\\/]node_modules[\\/]/,
+                    name: 'vendors',
+                    chunks: 'all'
+                }
+            }
+        }
+    },
 };
 
 module.exports = async env => {
@@ -96,9 +144,14 @@ module.exports = async env => {
     if (!env.release) {
         config.mode = "development";
         config.devtool = "source-map";
+        config.plugins.forEach(plugin => {
+            // make the favicon red
+            if (plugin instanceof HtmlWebpackPlugin) {
+                plugin.userOptions.favicon = path.resolve(srcDir, 'img/favicon-localhost', 'favicon.ico')
+            }
+        })
     } else {
         config.mode = "production";
-        config.output.filename = '[name].[hash].js';
         config.devtool = false;
     }
 

@@ -149,7 +149,6 @@ export default class Renderer {
 
     render() {
         // smooth when zoom < 1, pixelated otherwise
-        // TODO move to camera
         this.correctSmoothing();
 
         let visibleChunks = getVisibleChunks();

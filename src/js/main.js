@@ -24,10 +24,7 @@ import camera from './camera';
 import { Modal } from './Window';
 import { getLS, setLS } from './utils/localStorage';
 
-(async () => {
-    // TODO remove in next version
-    removeOldKeybinds();
-    
+(async () => {    
     await config.download();
 
     const {

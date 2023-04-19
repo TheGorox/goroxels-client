@@ -9,11 +9,17 @@ import Window from './Window'
 import globals from './globals';
 import me from './me';
 
-import userImg from '../img/user2.png';
+// import userImg from '../img/user2.png';
+import userImg from '../img/user.svg'
 import { ROLE } from './constants';
 import { apiRequest } from './actions';
 import IP from './utils/ip';
 import { translate as t_ } from './translate';
+
+import modBadge from '../img/mod-badge.svg'
+import adminBadge from '../img/admin-badge.svg'
+import creatorBadge from '../img/creator-badge.svg'
+import { htmlspecialchars } from './utils/misc';
 
 const usersContainer = $('#usersTable');
 
@@ -107,7 +113,7 @@ export default class User {
     }
 
 
-    constructor(name, id, userId, registered) {
+    constructor(name, id, userId, registered, role) {
         if (!name) name = 'ID ' + id;
 
         this.name = name;
@@ -116,24 +122,21 @@ export default class User {
 
         this.registered = registered;
 
+        this.role = role;
+
         this.conns = [id];
 
-        
-        let displayNameTest,
-            displayName = this.name;
-        try {
-            displayNameTest = $(globals.chat.parseColors(this.name))[0]
-        }catch{}
-        if(displayNameTest){
-            if(displayNameTest.innerText.length){
-                displayName = displayNameTest.innerText;
-            }
-        }
+
+        const safeName = htmlspecialchars(this.name);
+        let displayName = globals.chat.parseColors(safeName).replace(/<[^>]*>/g, '');
+
+        const badgeProps = this.getRoleBadgeAndTitle();
 
         this.element = $(
             `<tr class="tableRow">
                 <td title="id ${id}" class="user">
-                    <button class="userInfoBtn"><img src="${userImg}"></button>
+                    ${badgeProps ? `<img src="${badgeProps.icon}" title="${badgeProps.tooltip}" class="roleBadge">` : ''}
+                    <button class="userInfoBtn minrole-trusted"><img style="height: 20px" src="${userImg}"></button>
                     <span class="name">${displayName} </span>
                     <span class="xConns"></span>
                 </td>
@@ -169,7 +172,38 @@ export default class User {
                 camera.centerOn(x, y);
         })
 
-        usersContainer.append(this.element);
+        usersContainer[0].appendChild(this.element[0]);
+
+        me.updateRoleRelatedHtml();
+    }
+
+    getRoleBadgeAndTitle() {
+        if (!this.role) return null;
+
+        let tooltip, icon;
+
+        switch (this.role) {
+            case 'MOD':
+                tooltip = 'mod';
+                icon = modBadge;
+                break
+            case 'ADMIN':
+                tooltip = 'admin';
+                icon = adminBadge;
+                break
+            default:
+                return null
+        }
+
+        // if (this.userId == 1) {
+        //     tooltip = 'creator';
+        //     icon = creatorBadge;
+        // }
+
+        return {
+            tooltip,
+            icon
+        }
     }
 
     updateCoords(color, x, y) {
@@ -177,9 +211,9 @@ export default class User {
         this.coordsEl.text(`(${x}, ${y})`);
     }
 
-    close(clientId){
+    close(clientId) {
         this.conns.splice(this.conns.indexOf(clientId), 1);
-        if(this.conns.length === 0)
+        if (this.conns.length === 0)
             this.destroy();
         else
             this.updateX();
@@ -191,12 +225,12 @@ export default class User {
         this.element.remove();
     }
 
-    newConnection(clientId){
+    newConnection(clientId) {
         this.conns.push(clientId);
         this.updateX();
     }
 
-    updateX(){
+    updateX() {
         const text = (this.conns.length > 1) ? `[x${this.conns.length}]` : '';
         $('.xConns', this.element).text(text);
     }

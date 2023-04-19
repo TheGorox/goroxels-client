@@ -78,13 +78,15 @@ export async function updateMe() {
         chatInput.removeAttr('disabled');
         chatInput.val('');
 
+        $('#loginButtons').hide();
         $('#chatNick').text(me.name);
         $('.authBtn').hide();
     } else {
         chatInput.attr('disabled');
         chatInput.val(t_('login to chat'));
 
-        $('#chatNick').text('CHAT');
+        // $('#chatNick').text('CHAT');
+        $('#chatNick').hide();
         $('.authBtn').show();
     }
 }
@@ -211,7 +213,7 @@ function initChat() {
 }
 
 export function placePixels(pixels, store = true) {
-    // does not check pixels
+    // does not checks pixels
 
     if (store) {
         pixels.forEach(([x, y]) => {
@@ -303,7 +305,7 @@ function initModMenu() {
             const m = $('#modMenu');
             if (m.data('state') === 'open') {
                 m.data('state', 'close');
-                m.css('right', 0);
+                m.css('right', '');
             } else {
                 m.data('state', 'open');
                 m.css('right', $('#modMenu .body').css('width'));
@@ -341,13 +343,18 @@ export async function solveCaptcha(answer) {
     return false
 }
 
+// an old analog for setPaletteColorsSize
 export function setPaletteRows(rows) {
     let width = (window.innerWidth / 100) * rows;
 
     $('#palette').css('max-width', width);
 }
+
+
 export function setPaletteColorsSize(size) {
-    if (!size) return;
+    if (size === undefined) {
+        size = getRecommendedColorSize();
+    }
     $('.paletteColor').css('width', size).css('height', size);
 }
 
@@ -417,17 +424,32 @@ setInterval(() => {
     }
 }, 3000)
 
+export function fixColorsWidth() {
+    const savedWidth = getLS('colorSize', true);
+    const calculated = getRecommendedColorSize();
+
+    const colSize = +savedWidth || calculated
+    setPaletteColorsSize(colSize);
+    fixChatPosition();
+}
+
 function initUISettings() {
-    setPaletteColorsSize(getLS('colorSize', true))
+    fixColorsWidth();
     toggleEmojis(getLS('hideEmojis') != 1);
-    updateEmojis(getOrDefault('emojis', '🙁 🤔 😀 💚').split(' '));
+    updateEmojis(getOrDefault('emojis', '🙁 🤔 😀 😄 💚 😡 👋 👍 😐').split(' '));
     togglePlaced(!+getOrDefault('hidePlaced', 1))
     updatePlaced(getLS('placedCount', true));
 }
 
 function initMobileChatToggle() {
-    $('.showChat').on('click', () => chat.mobileShow());
-    $('#hideChat').on('click', () => chat.mobileHide());
+    $('.showChat').on('click', () => {
+        $('.showChat').removeClass('showChat-notify');
+        chat.mobileShow()
+    });
+    $('#hideChat').on('click', () => {
+        $('.showChat').removeClass('showChat-notify');
+        chat.mobileHide()
+    });
 }
 
 function initHelpButton() {
@@ -446,17 +468,9 @@ export function initOtherCoolFeatures() {
     player.init();
     initCoordsClick();
     initOnlineViewer();
+    initMenuResizer();
+    showHelpIfFirstTime();
 }
-
-export function fixColorsWidth() {
-    const savedWidth = getLS('colorSize', true);
-    const calculated = getRecommendedColorSize();
-
-    const colSize = +savedWidth || calculated
-    $('.paletteColor').css('width', colSize).css('height', colSize);
-}
-
-
 
 function initCoordsClick() {
     globals.elements.coords.addEventListener('click', function () {
@@ -521,7 +535,7 @@ export function showPatternsOnPalette() {
 
                     if (top || bottom || left || right ||
                         leftTop || rightTop || leftBottom || rightBottom) {
-                            ctx.fillRect(x, y, 1, 1);
+                        ctx.fillRect(x, y, 1, 1);
                     }
                 }
             }
@@ -554,22 +568,22 @@ export function unloadPalettePatterns() {
     $('.paletteColor>img').remove();
 }
 
-export function removeOldKeybinds(){
-    try{
+export function removeOldKeybinds() {
+    try {
         const str = getLS('keyBinds');
         const json = JSON.parse(str);
-        for(let bind of Object.values(json)){
+        for (let bind of Object.values(json)) {
             let key = bind.split('+').slice(-1);
             key = +key;
-            if(!isNaN(key)){
+            if (!isNaN(key)) {
                 localStorage.removeItem('keyBinds');
                 return
             }
         }
-    }catch{}
+    } catch { }
 }
 
-function initOnlineViewer(){
+function initOnlineViewer() {
     $('#onlineColumn .columnHeader').on('click', async () => {
         let json;
         try {
@@ -579,17 +593,17 @@ function initOnlineViewer(){
             toastr.error(e);
             return
         }
-        
+
         onlineViewWindow(json);
     });
 }
 
-function initChatHeightWorkaround(){
+function initChatHeightWorkaround() {
     // -webkit-fill-available does not work since
     // the best way to define height that i know 
     // for the moment is through the script
 
-    function fixChatHeight(){
+    function fixChatHeight() {
         document.documentElement.style.setProperty('--gorox-chat-height', $(window).height() + 'px');
     }
 
@@ -600,4 +614,76 @@ function initChatHeightWorkaround(){
 export function fixChatPosition() {
     const paletteHeight = $('#palette').innerHeight();
     $('#chat').css('bottom', paletteHeight + 4);
+}
+
+function initMenuResizer() {
+    const resizer = $('#menuResizer');
+    const resizerStripes = $('#resizingStripes');
+
+    let curHeight = +getLS('columnHeight');
+    if (isNaN(curHeight) || curHeight == 0) {
+        curHeight = 123;
+    } else if (curHeight < 0) {
+        curHeight = 0;
+    } else if (curHeight >= (window.screen.height - 250)) {
+        curHeight = window.screen.height - 250;
+    }
+    $('.columnContent').css('height', curHeight);
+
+    let resizeTimeout;
+    let resizeLock = false;
+
+    function unfade() {
+        resizer.css('height', '7px');
+        resizer.css('background-color', '#4c4c4c');
+        resizerStripes.css('opacity', '1');
+    }
+
+    function fade() {
+        clearTimeout(resizeTimeout);
+        resizer.css('height', '');
+        resizer.css('background-color', '');
+        resizerStripes.css('opacity', '');
+    }
+
+    resizer.on('mouseover', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            unfade();
+        }, 500)
+    })
+
+    resizer.on('mouseout', () => {
+        if (resizeLock) return;
+
+        fade();
+    })
+
+    function onmousedown() {
+        resizeLock = true;
+        unfade();
+
+        function onmousemove(e) {
+            curHeight += e.originalEvent.movementY;
+            $('.columnContent').css('height', curHeight);
+            setLS('columnHeight', curHeight);
+        }
+        function oncemouseup() {
+            $(document).off('mousemove', onmousemove);
+            resizeLock = false;
+            fade();
+        }
+
+        $(document).on('mousemove', onmousemove)
+        $(document).one('mouseup', oncemouseup)
+    }
+    resizer.on('mousedown', onmousedown);
+}
+
+function showHelpIfFirstTime() {
+    const shownAlready = getLS('helpShown');
+    if (!shownAlready) {
+        setLS('helpShown', '1');
+        help();
+    }
 }
