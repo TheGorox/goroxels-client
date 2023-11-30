@@ -168,8 +168,8 @@ export default class Renderer {
         }
 
         this.ctx.save();
+        this.ctx.translate(Math.floor(-camX*zoom), Math.floor(-camY*zoom));
         this.ctx.scale(zoom, zoom);
-        this.ctx.translate(-camX, -camY);
 
         visibleChunks.forEach(chunkCord => {
             let [cx, cy] = chunkCord;

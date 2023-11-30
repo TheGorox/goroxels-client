@@ -265,6 +265,7 @@ export function uiSettings() {
     $('#showPatterns').on('click', e => {
         const show = e.target.checked;
         globals.showPatterns = show;
+        setLS('showPalettePatterns', show ? '1' : '0');
         show ? showPatternsOnPalette() : unloadPalettePatterns();
     });
 }

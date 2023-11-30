@@ -12,7 +12,7 @@ export let
     boardWidth, boardHeight,
     palette
 
-let downloaded = false;
+export let downloaded = false;
 
 export let
     // a palette for fast rendering
