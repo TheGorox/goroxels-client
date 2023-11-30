@@ -940,6 +940,19 @@ function createImgData(width, height) {
     return newImgData
 }
 
+async function copyCanvasToClipboard(canvas){
+    const blob = await new Promise(res => canvas.toBlob(res));
+    const item = new ClipboardItem({ "image/png": blob });
+    navigator.clipboard.write([item]);
+}
+
+function downloadCanvas(canvas){
+    const link = document.createElement('a');
+    link.download = 'filename.png';
+    link.href = canvas.toDataURL()
+    link.click();
+}
+
 async function onDone(canvas, convClass, callback) {
     $(`#${convClass} > *`).remove();
 
@@ -956,15 +969,16 @@ async function onDone(canvas, convClass, callback) {
 
     $(`#${convClass}`).append(
         `<div class="afterImage">
-            <div class="line"><button class="uploadButton"> ${t('Upload on imgur!')} </button></div>
+            <div class="line"><button class="uploadButton"> ${t('Upload on imgur!')}</button></div>
             <div class="line"><span class="imgurUrl"></span></div>
             ${convClass === 'patOut' ? `<div class="line">${t('Final image size:')} ${canvas.width}x${canvas.height}</div>` : ''}
+            <div class="line"><button class="copyToClipButton">${t('copy_canvas_btn')}</button></div>
+            <div class="line"><button class="downloadButton">${t('download_canvas_btn')}</button></div>
         </div>`
     );
     imgZoom.createZoomHandler($(`#${convClass}`).children(0)[0]);
 
-    $(`#${convClass} .uploadButton`).on('click', async () => {
-        $(`#${convClass} .uploadButton`).off('click');
+    $(`#${convClass} .uploadButton`).one('click', async () => {
         $(`#${convClass} .imgurUrl`).text('Uploading...');
 
         try {
@@ -979,11 +993,46 @@ async function onDone(canvas, convClass, callback) {
                 `<span style="color:rgb(0, 190, 0)">${link}${convClass === 'patOut' ? `?width=${canvas.width / 7}` : ''}</span>`
             )
         } catch {
-            const text = t('Imgur upload failed, try upload manually and add this to a link:') +
-                (convClass == 'patOut' ? ` "?width=${canvas.width / 7}"` : '');
+            const text = t('Imgur upload failed, try upload manually');
+            let html;
+            if(convClass === 'patOut'){
+                html = `${text}<br><input id="patternLinkGenerator" placeholder="${t('insert_link_here')}">&nbsp;<span id="patternLink"></span>`;
+                setTimeout(() => {
+                    const span = $('#patternLink');
+                    $('#patternLinkGenerator').on('input', e => {
+                        const input = e.target;
+                        let link = input.value;
+                        input.style.backgroundColor = '';
 
-            $(`#${convClass} .imgurUrl`).text(text)
+                        if(link.includes('imgur') && !link.endsWith('.png')){
+                            if(link.includes('/a/')){
+                                input.style.backgroundColor = 'red';
+                                return span.text(t('imgur_album_link'))
+                            }
+
+                            link += '.png';
+                        }
+
+                        link += `?width=${canvas.width / 7}`;
+
+                        span.text(link);
+                    })
+                })
+            }else{
+                html = text;
+            }
+
+            $(`#${convClass} .imgurUrl`).html(html)
         }
+    });
+
+    $(`#${convClass} .copyToClipButton`).one('click', () => {
+        copyCanvasToClipboard(canvas)
+            .then(() => toastr.success('Copied!'));
+    });
+
+    $(`#${convClass} .downloadButton`).one('click', () => {
+        downloadCanvas(canvas)
     });
 
     callback();
