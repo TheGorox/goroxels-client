@@ -2,6 +2,10 @@
     --primary: #4C4C4C;
     --darken: #404040;
     --dark: #333;
+    --lighten: #5a5a5a;
+    --light: #7a7a7a;
+
+    --very-light-text: white;
     --light-text: #d2d2d2;
     --bg-text: gray;
 }
