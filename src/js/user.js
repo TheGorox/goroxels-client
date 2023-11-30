@@ -21,6 +21,14 @@ import adminBadge from '../img/admin-badge.svg'
 import creatorBadge from '../img/creator-badge.svg'
 import { htmlspecialchars } from './utils/misc';
 
+// need to find a way for importing links dynamically
+import badge0link from '../img/badges/badge0.png';
+import badge1link from '../img/badges/badge1.png';
+const badgeLinks = [
+    badge0link,
+    badge1link
+]
+
 const usersContainer = $('#usersTable');
 
 export default class User {
@@ -113,7 +121,7 @@ export default class User {
     }
 
 
-    constructor(name, id, userId, registered, role) {
+    constructor(name, id, userId, registered, role, badges) {
         if (!name) name = 'ID ' + id;
 
         this.name = name;
@@ -126,18 +134,22 @@ export default class User {
 
         this.conns = [id];
 
+        this.badges = badges;
+
 
         const safeName = htmlspecialchars(this.name);
         let displayName = globals.chat.parseColors(safeName).replace(/<[^>]*>/g, '');
 
-        const badgeProps = this.getRoleBadgeAndTitle();
+        const roleBadgeProps = this.getRoleBadgeAndTitle();
+        const badgeImagesHtml = this.getAchieveBadgesHtml();
 
         this.element = $(
             `<tr class="tableRow">
                 <td title="id ${id}" class="user">
-                    ${badgeProps ? `<img src="${badgeProps.icon}" title="${badgeProps.tooltip}" class="roleBadge">` : ''}
+                    ${roleBadgeProps ? `<img src="${roleBadgeProps.icon}" title="${roleBadgeProps.tooltip}" class="roleBadge">` : ''}
                     <button class="userInfoBtn minrole-trusted"><img style="height: 20px" src="${userImg}"></button>
-                    <span class="name">${displayName} </span>
+                    <span class="name">${displayName}</span>
+                    <span class="badges">${badgeImagesHtml}</span>
                     <span class="xConns"></span>
                 </td>
                 <td></td>
@@ -175,6 +187,16 @@ export default class User {
         usersContainer[0].appendChild(this.element[0]);
 
         me.updateRoleRelatedHtml();
+    }
+
+    getAchieveBadgesHtml(){
+        if(!this.badges) return '';
+
+        let html = '';
+        for(let badgeId of this.badges){
+            html += `<img src="${badgeLinks[badgeId]}">`
+        }
+        return html
     }
 
     getRoleBadgeAndTitle() {

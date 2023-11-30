@@ -44,6 +44,7 @@ export default class Socket extends EventEmitter {
         this.socket.binaryType = 'arraybuffer';
 
         this.socket.onopen = () => {
+            this.sendChatSubscribe('global', this.connectedOnce);
             this.sendChatSubscribe(canvasName, this.connectedOnce);
             this.sendCanvas(canvasId);
 
@@ -58,11 +59,14 @@ export default class Socket extends EventEmitter {
         this.socket.onclose = () => {
             this.emit('closed');
             Object.values(globals.users).forEach(u => u.close(u.id));
+            globals.users = {};
+
+            globals.chunkManager.clearLoadingChunks();
 
             setTimeout(() => {
                 console.log('reconnect');
                 this.reconnect();
-            }, Math.random()*5000);
+            }, Math.random()*1000);
         }
     }
 
@@ -107,8 +111,11 @@ export default class Socket extends EventEmitter {
                     userId,
                     id,
                     registered,
-                    role
+                    role,
+                    badges
                 } = decoded;
+
+                const badgesParsed = badges?.split('|').filter(x => x.length).map(x => +x);
 
                 let sameUser;
                 if(name){
@@ -119,7 +126,7 @@ export default class Socket extends EventEmitter {
                     globals.users[id] = sameUser;
                     sameUser.newConnection(id);
                 }else{
-                    globals.users[id] = new User(name, id, userId, registered, role);
+                    globals.users[id] = new User(name, id, userId, registered, role, badgesParsed);
                 }
 
                 break
@@ -199,7 +206,9 @@ export default class Socket extends EventEmitter {
             }
 
             case OPCODES.place: {
-                const [x, y, col] = unpackPixel(dv.getUint32(1));
+                const x = dv.getUint16(1);
+                const y = dv.getUint16(3);
+                const col = dv.getUint8(5);
 
                 const id = dv.getUint32(5);
 
@@ -218,8 +227,10 @@ export default class Socket extends EventEmitter {
                 const isProtect = !!dv.getUint8(1),
                     uid = dv.getUint32(2, false);
                 let x, y, col;
-                for(let i = 6; i < dv.byteLength; i+=4){
-                    [x, y, col] = unpackPixel(dv.getUint32(i));
+                for(let i = 6; i < dv.byteLength; i+=5){
+                    x = dv.getUint16(i);
+                    y = dv.getUint16(i+2);
+                    col = dv.getUint8(i+4);
                     if(isProtect){
                         this.emit('protect', x, y, col);
                     }else{
@@ -239,7 +250,7 @@ export default class Socket extends EventEmitter {
             }
 
             case OPCODES.placeBatch: {
-                const PIXEL_LENGTH = 8;
+                const PIXEL_LENGTH = 9;
 
                 const totalPixels = (dv.byteLength-1) / PIXEL_LENGTH;
                 if(totalPixels % 1 !== 0){
@@ -247,11 +258,12 @@ export default class Socket extends EventEmitter {
                 }
 
                 for(let off = 1; off < dv.byteLength; off += PIXEL_LENGTH){
-                    const pixelData = dv.getUint32(off);
-                    const placerId = dv.getUint32(off+4);
+                    const x = dv.getUint16(off);
+                    const y = dv.getUint16(off+2);
+                    const c = dv.getUint8(off+4);
+                    const placerId = dv.getUint32(off+5);
 
-                    const pixel = unpackPixel(pixelData);
-                    this.onIncomingPixel(pixel, placerId);
+                    this.onIncomingPixel([x, y, c], placerId);
                 }
                 break
             }
@@ -286,25 +298,28 @@ export default class Socket extends EventEmitter {
     }
 
     sendPixel(x, y, c) {
-        let dv = new DataView(new ArrayBuffer(1 + 4))
+        let dv = new DataView(new ArrayBuffer(1 + 5))
 
         dv.setUint8(0, OPCODES.place);
-        dv.setUint32(1, packPixel(x | 0, y | 0, c));
+        dv.setUint16(1, x);
+        dv.setUint16(3, y);
+        dv.setUint8(5, c);
 
         this.socket.send(dv.buffer);
     }
 
     sendPixels(pixels, isProtect=false) {
-        let dv = new DataView(new ArrayBuffer(6 + pixels.length*4))
+        let dv = new DataView(new ArrayBuffer(6 + pixels.length*5))
 
         dv.setUint8(0, OPCODES.pixels);
         dv.setUint8(1, isProtect ? 1 : 0); // isProtect
         for(let i = 0; i < pixels.length; i++){
-            let offset = i*4 + 6;
+            let offset = i*5 + 6;
             const [x, y, col] = pixels[i];
 
-            const pixel = packPixel(x, y, col);
-            dv.setUint32(offset, pixel);
+            dv.setUint16(offset, x);
+            dv.setUint16(offset+2, y);
+            dv.setUint8(offset+4, col);
         }
 
         this.socket.send(dv.buffer)
