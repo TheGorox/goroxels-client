@@ -68,6 +68,10 @@ export default class ChunkManager {
         }
     }
 
+    clearLoadingChunks(){
+        this.loadingChunks = new Set;
+    }
+
     hasChunk(x, y) {
         let key = this.getChunkKey(x, y);
 
