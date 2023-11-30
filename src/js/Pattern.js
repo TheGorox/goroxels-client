@@ -27,5 +27,27 @@ export default class Pattern{
         }
     }
 
+    createFilledCanvas(width, height, offsetX, offsetY){
+        const ctx = this.canvas.getContext('2d');
+        const pattern = ctx.createPattern(this.canvas, 'repeat');
+
+        const filledCanvas = document.createElement('canvas');
+        filledCanvas.width = width;
+        filledCanvas.height = height;
+
+        const filledCtx = filledCanvas.getContext('2d');
+        
+        filledCtx.fillStyle = pattern;
+        
+        // this "save restore" shit is copied from stackoverflow
+        // it's needed to actually shift the pattern
+        filledCtx.save();
+        filledCtx.translate(offsetX, offsetY);
+        filledCtx.fillRect(-offsetX, -offsetY, width, height);
+        filledCtx.restore();
+
+        return filledCanvas;
+    }
+
     onload(){}
 }
