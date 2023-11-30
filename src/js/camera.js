@@ -12,7 +12,7 @@ const camera = {
     minX: null, minY: null, 
     maxX: null, maxY: null,
 
-    minZoom: 0.25,
+    minZoom: 0.1,
     maxZoom: 64,
 
     // when it's needed to disable moving

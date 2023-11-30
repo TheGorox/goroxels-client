@@ -154,7 +154,11 @@ export default {
     'If your image is big, go make a tea and watch Doctor Who': 'Если твоя картинка слишком большая, наберись терпения. Завари чай и посмотри пару-тройку серий "Доктора Кто".', // или серии "Костей" про маньяков, рекомендую Пеланта и Кукольника (Джон)
     'Final image size:': 'Конечный размер картинки:',
     'Upload on imgur!': 'Загрузить на imgur!',
-    'Imgur upload failed, try upload manually and add this to a link:': 'Попытка загрузки на imgur провалена. Попробуй загрузить вручную и скопируй ссылку самостоятельно', 
+    'copy_canvas_btn': 'в буфер обмена',
+    'download_canvas_btn': 'скачать',
+    'Imgur upload failed, try upload manually': 'Попытка загрузки на imgur провалена. Попробуй загрузить вручную и скопируй ссылку самостоятельно', 
+    'insert_link_here': 'вставь сюда ссылку',
+    'imgur_album_link': 'Это не та ссылка! Скопируй правой кнопкой по картинке - "копировать ссылку на изображение", либо по кнопке "Copy link"',
     'Failed to load game palettes!': 'Не удалось загрузить палитры игры!',
     'URL/file/clipboard': 'URL/файл/буфер обмена',
 

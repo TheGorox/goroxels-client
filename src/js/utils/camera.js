@@ -22,6 +22,7 @@ export function isAreaVisible(x, y, w, h){
 
 export function getVisibleChunks() {
     // todo rework it
+    // rn it checks left top chunk and right bottom chunk
 
     let [sx, sy] = screenToBoardSpace(0, 0);
     let [ex, ey] = screenToBoardSpace(window.innerWidth, window.innerHeight);

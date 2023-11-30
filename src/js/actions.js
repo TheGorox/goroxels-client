@@ -1,7 +1,7 @@
 import me from './me';
 import {
     canvasName,
-    cooldown, game, hexPalette, palette
+    cooldown, downloaded, game, hexPalette, palette
 } from './config';
 import player from './player';
 import {
@@ -78,16 +78,18 @@ export async function updateMe() {
         chatInput.removeAttr('disabled');
         chatInput.val('');
 
-        $('#loginButtons').hide();
+        $('#loginButtons,.authBtn').hide();
+        $('#chatNick,#chatChannels').show();
         $('#chatNick').text(me.name);
-        $('.authBtn').hide();
+        $('#chatHeader').addClass('logged');
     } else {
         chatInput.attr('disabled');
         chatInput.val(t_('login to chat'));
 
         // $('#chatNick').text('CHAT');
-        $('#chatNick').hide();
-        $('.authBtn').show();
+        $('#chatNick,#chatChannels').hide();
+        $('#loginButtons,.authBtn').show();
+        $('#chatHeader').removeClass('logged');
     }
 }
 
@@ -209,7 +211,33 @@ function initChat() {
         }
     });
 
+    $('#chatChannels>div').on('click', (e) => {
+        const ch = e.target.dataset.channel;
+        chat.switchChannel(ch);
+        setLS('chatChannel', ch);
+    });
+
+    resolveWhenConfigDownloaded().then(() => {
+        chat.loadChannelElements();
+        chat.switchChannel(getLS('chatChannel') || 'global');
+    })
+
     initChatHeightWorkaround();
+}
+
+async function resolveWhenConfigDownloaded(){
+    if(downloaded){
+        return;
+    }else{
+        return new Promise(res => {
+            const int = setInterval(() => {
+                if(downloaded){
+                    clearInterval(int);
+                    res();
+                }
+            }, 10);
+        })
+    }
 }
 
 export function placePixels(pixels, store = true) {
@@ -439,6 +467,10 @@ function initUISettings() {
     updateEmojis(getOrDefault('emojis', '🙁 🤔 😀 😄 💚 😡 👋 👍 😐').split(' '));
     togglePlaced(!+getOrDefault('hidePlaced', 1))
     updatePlaced(getLS('placedCount', true));
+    if (getLS('showPalettePatterns') == 1) {
+        showPatternsOnPalette();
+        globals.showPatterns = true;
+    }
 }
 
 function initMobileChatToggle() {

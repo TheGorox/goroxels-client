@@ -26,13 +26,26 @@ const imgRegEx = new RegExp(/http?s:\/\/.+?\.(png|jpg|jpeg|gif)(\?\S+)?/i);
 class Chat {
     constructor() {
         this.element = $('#chat');
-        this.logElem = $('#chatLog');
+
+        this.logElems = {};
 
         this.colorsEnabled = !JSON.parse(getOrDefault('disableColors', false));
 
         this.muted = JSON.parse(getLS('muted')) || [];
 
+        this.channel = undefined;
+
         this.initChatEvents();
+    }
+
+    loadChannelElements(){
+        [...$('#chatLog').children()].map(el => {
+            let channel = el.dataset.channel;
+            if(channel === 'local'){
+                channel = canvasName;
+            }
+            this.logElems[channel] = $(el);
+        })
     }
 
     // mobile version of hide/show
@@ -115,7 +128,7 @@ class Chat {
         }else{
             $('.imageLink', parent).css('cursor', 'zoom-out');
             const img = $(`<img src="${element.text()}" class="chatImg" onclick="globals.chat.toggleImage(this)">`);
-            img.on('load', this.scroll.bind(this));
+            img.on('load', this.scroll.bind(this, this.channel));
             parent.append(img);
         }
     }
@@ -152,8 +165,10 @@ class Chat {
     addMessage(message) {
         $('.showChat').addClass('showChat-notify');
 
+        const channel = message.ch;
+
         if (message.server)
-            return this.addServerMessage(message.msg);
+            return this.addServerMessage(message.msg, channel);
 
         let text = htmlspecialchars(message.msg),
             nick = htmlspecialchars(message.nick);
@@ -189,12 +204,12 @@ class Chat {
             globals.elements.chatInput.focus();
         })
 
-        this.logElem.append(msgEl);
+        this.logElems[channel].append(msgEl);
 
-        this.afterAddingMessage();
+        this.afterAddingMessage(channel);
     }
 
-    addLocalMessage(text) {
+    addLocalMessage(text, channel) {
         text = this.parseColors(text);
         text = this.parseBB(text);
         text = this.parseCoords(text);
@@ -205,20 +220,44 @@ class Chat {
                 <div class="messageText">${text}</div>
             </div>`)
 
-        this.logElem.append(msgEl);
+        this.logElems[channel].append(msgEl);
 
-        this.afterAddingMessage();
+        this.afterAddingMessage(channel);
     }
 
-    addServerMessage(text) {
-        this.addLocalMessage(text)
-    }
-
-    afterAddingMessage() {
-        if (this.logElem.children().length > game.chatLimit) {
-            this.logElem.children()[0].remove();
+    switchChannel(channel){
+        if(this.channel === channel){
+            return;
         }
-        this.scroll();
+
+        const channelAlias = channel;
+        if(channel === 'local'){
+            channel = canvasName;
+        }
+
+        for(let ch of Object.values(this.logElems)){
+            ch.hide();
+        }
+        this.logElems[channel].show();
+
+        $(`#chatChannels>div`).removeClass('selected');
+        $(`#chatChannels>div[data-channel="${channelAlias}"]`).addClass('selected');
+
+        this.scroll(channel, true);
+
+        this.channel = channel;
+    }
+
+    addServerMessage(text, channel) {
+        this.addLocalMessage(text, channel);
+    }
+
+    afterAddingMessage(channel) {
+        const el = this.logElems[channel];
+        if (el.children().length > game.chatLimit) {
+            el.children()[0].remove();
+        }
+        this.scroll(channel);
     }
 
     // handles messages to send
@@ -226,11 +265,11 @@ class Chat {
         if (message.startsWith('/')) {
             this.handleCommand(message);
         } else
-        globals.socket.sendChatMessage(message, canvasName);
+        globals.socket.sendChatMessage(message, this.channel);
     }
 
     sendWhisper(target, message){
-        globals.socket.sendChatWhisper(message, canvasName, target);
+        globals.socket.sendChatWhisper(message, this.channel, target);
     }
 
     // handles chat commands
@@ -322,13 +361,14 @@ class Chat {
     }
 
     // this function scrolls only if player scrolled chat log to the end
-    scroll(){
-        const log = this.logElem[0];
-        const lastElemHeight = this.logElem.children().slice(-1).innerHeight() || 0;
+    scroll(channel='global', force=false){
+        const el$ = this.logElems[channel];
+        const el = el$.parent()[0];
+        const lastElemHeight = el$.children().slice(-1).innerHeight() || 0;
         // 2 is message margin and 5 is just for fun
-        const scrolled = (log.scrollHeight - log.scrollTop - log.clientHeight - lastElemHeight) <= 2+5;
-        if(scrolled){
-            log.scrollBy(0, 999);
+        const scrolled = (el.scrollHeight - el.scrollTop - el.clientHeight - lastElemHeight) <= 2+5;
+        if(scrolled || force){
+            el.scrollBy(0, 999);
         }
     }
 }

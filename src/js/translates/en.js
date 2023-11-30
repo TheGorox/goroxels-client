@@ -107,7 +107,7 @@ export default {
     'intro.authorText':'Authors - Goroh and Comrades',
     'intro.authorContacts': "<img src='./img/telegram.svg' style='vertical-align:middle;height:40px'> <a href='//t.me/antieden'>Telegram</a><br>"+
     "<img src='./img/discord-logo-circle.svg' style='vertical-align:middle;height:40px'> Goroh#0385<br>"+
-    "<img src='./img/discord-logo-circle.svg' style='vertical-align:middle;height:40px'> <a href='//discord.gg/ZhMfTvU2'>Game server</a>",
+    "<img src='./img/discord-logo-circle.svg' style='vertical-align:middle;height:40px'> <a href=\"//discord.gg/FeBMmwRUpA\">Game server</a>",
     // nsfw modal
     'WARNING': 'WARNING',
     'This canvas may contain illustrations, inappropriate for people under age of 18, including:': 'This canvas may contain illustrations, inappropriate for people under age of 18, including:',
@@ -154,7 +154,10 @@ export default {
     'If your image is big, go make a tea and watch Doctor Who': 'If your image is big, go make a tea and watch Doctor Who',
     'Final image size:': 'Final image size:',
     'Upload on imgur!': 'Upload on imgur!',
-    'Imgur upload failed, try upload manually and add this to a link:': 'Imgur upload failed, try upload manually',
+    'copy_canvas_btn': 'copy to Clipboard',
+    'download_canvas_btn': 'download',
+    'Imgur upload failed, try upload manually': 'Imgur upload failed, try upload manually',
+    'insert_link_here': 'insert link here',
     'Failed to load game palettes!': 'Failed to load game palettes!',
     'URL/file/clipboard': 'URL/file/clipboard',
 
@@ -188,5 +191,6 @@ export default {
     'bottom': 'bottom',
     'left': 'left',
     // js and others TODO
-    'LOG IN': 'LOG IN'
+    'LOG IN': 'LOG IN',
+    
 }
