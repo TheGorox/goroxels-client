@@ -51,8 +51,14 @@ import revertIcon from '../img/toolIcons/revert.png'
 import template from './template';
 import me from './me';
 import { closestColor } from './utils/color';
-import { getOrDefault, setLS } from './utils/localStorage';
+import { getLS, getOrDefault, setLS } from './utils/localStorage';
 import { htmlspecialchars, testPointInPolygon } from './utils/misc';
+import Bucket from './Bucket';
+import { map } from './utils/math';
+
+import min5fontSheet from '../font/pixel/min 5.png';
+import min5fontInfo from '../font/pixel/min 5.txt';
+import MiniWindow from './MiniWindow';
 
 const mobile = globals.mobile;
 
@@ -702,6 +708,8 @@ class FloodFill extends Tool {
         if (!this.active) return;
 
         for (let i = 0; i < 15 && this.stack.length; i++) {
+            let nextX = this.stack[this.stack.length - 1][0];
+
             if (!player.bucket.spend(1)) break;
 
             let [x, y] = this.stack.pop();
@@ -884,11 +892,11 @@ class Line extends Tool {
                         theta *= 180 / Math.PI; // rads to degs, range (-180, 180]
                         //if (theta < 0) theta = 360 + theta; // range [0, 360)
                         return theta;
-                      }
+                    }
 
-                      function toRadians (angle) {
+                    function toRadians(angle) {
                         return angle * (Math.PI / 180);
-                      }
+                    }
 
                     if (this.drawLength && line.length > 1) {
                         let [startPosX, startPosY] = startScreen;
@@ -899,27 +907,27 @@ class Line extends Tool {
                         let maxX = Math.max(startPosX, endPosX);
                         let maxY = Math.max(startPosY, endPosY);
 
-                        let [midPosX, midPosY] = [maxX-Math.abs(maxX-minX)/2, maxY-Math.abs(maxY-minY)/2];
+                        let [midPosX, midPosY] = [maxX - Math.abs(maxX - minX) / 2, maxY - Math.abs(maxY - minY) / 2];
 
                         // append half-pixel offset to center text in the middle
                         midPosX += camera.zoom * 0.5;
                         midPosY += camera.zoom * 0.5;
 
                         let lineAngle = angle(startPosX, startPosY, endPosX, endPosY);
-                        if(lineAngle > 90){
+                        if (lineAngle > 90) {
                             lineAngle -= 180;
-                        }else if(lineAngle < -90){
+                        } else if (lineAngle < -90) {
                             lineAngle += 180;
                         }
 
                         let lineRads = toRadians(lineAngle);
-                        let offsetX = 40*Math.sin(lineRads);
-                        let offsetY = 40*Math.cos(lineRads);
+                        let offsetX = 40 * Math.sin(lineRads);
+                        let offsetY = 40 * Math.cos(lineRads);
 
                         midPosX += offsetX;
                         midPosY -= offsetY;
 
-                        
+
 
                         ctx.save();
                         ctx.globalAlpha = .7;
@@ -1102,7 +1110,7 @@ class CtrlZ extends Tool {
     handlers() {
         let isDown = false;
 
-        function reset(){
+        function reset() {
             isDown = false;
 
             this.off('tick', tick);
@@ -1114,7 +1122,7 @@ class CtrlZ extends Tool {
         const down = function (e) {
             e.preventDefault();
             e.stopPropagation();
-            if(e.gesture){
+            if (e.gesture) {
                 return reset();
             }
 
@@ -1127,7 +1135,7 @@ class CtrlZ extends Tool {
         }.bind(this);
 
         const move = function (e) {
-            if(e.gesture){
+            if (e.gesture) {
                 reset();
             }
         }.bind(this);
@@ -1391,7 +1399,6 @@ class Paste extends Tool {
         function render(ctx) {
             const [x, y] = boardToScreenSpace(xPos, yPos);
             const z = camera.zoom;
-            ctx.globalAlpha = 0.5;
 
             ctx.imageSmoothingEnabled = false;
             ctx.webkitImageSmoothingEnabled = false;
@@ -1399,13 +1406,16 @@ class Paste extends Tool {
             ctx.msImageSmoothingEnabled = false;
             ctx.oImageSmoothingEnabled = false;
 
+            const opacity = map(Math.sin(Date.now() / 400), -1, 1, 0.5, 1);
+            ctx.globalAlpha = opacity;
+
             ctx.save();
             ctx.scale(z, z);
             ctx.drawImage(canvas, x / z, y / z);
             ctx.restore();
 
             ctx.globalAlpha = 1;
-            return 1
+            return 0
         }
 
         const fx = this.moveFX = new FX(render);
@@ -1475,7 +1485,11 @@ class Paste extends Tool {
 
             let pixels = [];
 
-            while (allowance > 0 && offset < imgdata.length - 4 && pixels.length < 16000) {
+            let max = 13106;
+            if (getLS('ya', false) === 'polkovnik') {
+                max = 52441;
+            }
+            while (allowance > 0 && offset < imgdata.length - 4 && pixels.length < 13106) {
                 offset += 4;
 
                 let rgba = [
@@ -1624,9 +1638,9 @@ class Square extends Tool {
         function tick() {
             let infCd = (player.bucket.allowance === Infinity);
 
-            if(!this.lastTick) this.lastTick = Date.now();
+            if (!this.lastTick) this.lastTick = Date.now();
 
-            if(infCd && Date.now()-this.lastTick < 50) return;
+            if (infCd && Date.now() - this.lastTick < 50) return;
             this.lastTick = Date.now();
 
             // ограничитель для 0кд
@@ -1648,14 +1662,14 @@ class Square extends Tool {
 
                 counter++;
 
-                if(infCd){
-                    toSend.push([x,y,col]);
-                }else{
+                if (infCd) {
+                    toSend.push([x, y, col]);
+                } else {
                     placePixel(x, y, col);
                 }
             }
 
-            if(toSend.length){
+            if (toSend.length) {
                 placePixels(toSend, true);
             }
         }
@@ -1909,12 +1923,12 @@ const copy = new Copy('copy', 'CTRL+KeyC', null, ROLE.MOD);
 const pixelInfo = new Tool('pixel info', 'KeyI');
 
 let last = null, pinfoFx = null
-function removeLast(){
-    if(last){
+function removeLast() {
+    if (last) {
         last.remove();
         last = null;
     }
-    if(pinfoFx){
+    if (pinfoFx) {
         pinfoFx.remove();
         pinfoFx = null;
     }
@@ -1928,14 +1942,14 @@ pixelInfo.on('up', async () => {
 
     const resp = await apiRequest(`/pixelInfo?canvas=${canvasId}&x=${x}&y=${y}`);
     const data = await resp.json();
-    if(!data || !data.type) return;
+    if (!data || !data.type) return;
 
     const el = $('<div class="infoBubble"><span style="user-select:text"></span></div>');
     last = el;
 
     const coordsLegend = $('<div>');
-    coordsLegend[0].style.cssText = 
-    `position: absolute;
+    coordsLegend[0].style.cssText =
+        `position: absolute;
     top: -7px;
     left: 0;
     width: 100%;
@@ -1949,18 +1963,18 @@ pixelInfo.on('up', async () => {
 
     let text = '';
 
-    if(data.type === 'UID'){
+    if (data.type === 'UID') {
         const sanitizedName = htmlspecialchars(data.placer.nick);
 
         text += '<b>UID</b>&nbsp;' + data.placer.id + '<br>',
-        text += '<b>name</b>&nbsp;' + sanitizedName;
-    }else{
+            text += '<b>name</b>&nbsp;' + sanitizedName;
+    } else {
         text += `<b>${data.type}</b>`;
-        if(data.placer){
+        if (data.placer) {
             text += '&nbsp;' + data.placer
         }
     }
-    
+
     $('span', el).html(text);
 
     $('body').append(el);
@@ -1968,10 +1982,10 @@ pixelInfo.on('up', async () => {
     const w = el[0].clientWidth;
     const h = el[0].clientHeight;
 
-    function fixPos(){
+    function fixPos() {
         const [clientX, clientY] = boardToScreenSpace(x, y);
-        const posX = clientX+(camera.zoom/2)-(w/2)
-        const posY = clientY-h-11;
+        const posX = clientX + (camera.zoom / 2) - (w / 2)
+        const posY = clientY - h - 11;
 
         el.css('top', posY).css('left', posX);
 
@@ -1985,6 +1999,292 @@ pixelInfo.on('up', async () => {
     })
     addFX(pinfoFx, 2);
 });
+
+class PixelFont {
+    static defaultVSpacing = 1;
+
+    constructor(imagePath, infoPath) {
+        this.imagePath = imagePath;
+        this.infoPath = infoPath;
+
+        this.defaultWidth = null;
+        this.defaultHeight = null;
+        this.letters = {};
+
+        this.loaded = false;
+        this._isLoading = false;
+    }
+
+    async load() {
+        if (this._isLoading) return;
+        this._isLoading = true;
+
+        try {
+            const fontCanvas = await new Promise((res, rej) => {
+                const img = new Image();
+
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+
+                    res(canvas);
+                }
+
+                img.onerror = rej;
+
+                img.src = this.imagePath;
+            })
+
+            const fontInfoResp = await fetch(this.infoPath);
+            const fontInfo = await fontInfoResp.json();
+
+            const defaultWidth = fontInfo.defaultWidth;
+            this.defaultWidth = defaultWidth;
+            const height = fontInfo.fixedHeight;
+            this.defaultHeight = height;
+
+            const fontCanvasCtx = fontCanvas.getContext('2d');
+            this.letters = {};
+
+            let offsetX = 0;
+            for (let letter of fontInfo.letters) {
+                const {
+                    letter: letterSymbol,
+                    width = defaultWidth
+                } = letter;
+
+                const slice = fontCanvasCtx.getImageData(offsetX, 0, width, height);
+                this.letters[letterSymbol] = slice;
+
+                // extra 1 because it's one white pixel before each next letter
+                offsetX += width + 1;
+            }
+        } catch (error) {
+            this._isLoading = false;
+            throw error
+        }
+
+        this._isLoading = false;
+        this.loaded = true;
+    }
+
+    drawText(text, color='black') {
+        if(!this.loaded) throw new Error('font not loaded');
+
+        text = text.toUpperCase();
+
+        const {
+            width: textWidth,
+            height: textHeight
+        } = this.measureText(text);
+
+        const colorCanvas = document.createElement('canvas');
+        const textCanvas = document.createElement('canvas');
+
+        colorCanvas.width = textCanvas.width = textWidth;
+        colorCanvas.height = textCanvas.height = textHeight;
+
+        const colorCanvasCtx = colorCanvas.getContext('2d');
+        const textCanvasCtx = textCanvas.getContext('2d');
+
+        const textLetters = text.split('');
+        let cursorX = 0, cursorY = 0;
+        for(let letter of textLetters){
+            if(letter == '\n'){
+                cursorY += this.defaultHeight + PixelFont.defaultVSpacing;
+                cursorX = 0;
+                continue
+            }
+
+            if(letter == ' '){
+                cursorX += this.defaultWidth;
+                continue
+            }
+
+            let letterImData = this.letters[letter];
+            if(!letterImData){
+                cursorX += this.defaultWidth;
+                continue
+            }
+
+            textCanvasCtx.putImageData(letterImData, cursorX, cursorY);
+            cursorX += letterImData.width + 1; // 1 is the constant spacing
+        }
+
+        // first, we draw text canvas shaped, colored rect 
+        // then we will put the text on top of it, using
+        // globalComposite property.
+        // this will keep only those pixels of colored rect, in which
+        // letters are. this will "color" the letters in the color of the rect
+        colorCanvasCtx.fillStyle = color;
+        colorCanvasCtx.fillRect(0, 0, textWidth, textHeight);
+
+        colorCanvasCtx.globalCompositeOperation = 'destination-atop';
+        colorCanvasCtx.drawImage(textCanvas, 0, 0);
+
+        return colorCanvas;
+    }
+
+    measureText(text){
+        if(!this.loaded) throw new Error('font not loaded');
+
+        text = text.toUpperCase();
+
+        const textLetters = text.split('');
+        let curWidth = 0, maxWidth = 0, height = this.defaultHeight;
+
+        for(let letter of textLetters){
+            if(letter == '\n'){
+                height += this.defaultHeight + PixelFont.defaultVSpacing;
+                maxWidth = Math.max(curWidth, maxWidth);
+                curWidth = 0;
+                continue
+            }
+
+            if(letter == ' '){
+                curWidth += this.defaultWidth;
+                continue
+            }
+
+            if(this.letters[letter]){
+                curWidth += (this.letters[letter].width || this.defaultWidth) + 1;
+            }
+        }
+
+        return {
+            width: Math.max(curWidth, maxWidth), height
+        }
+    }
+}
+
+class Text extends Tool {
+    constructor(...args) {
+        super(...args);
+
+        this.fonts = [
+            new PixelFont(min5fontSheet, min5fontInfo)
+        ];
+        this.fonts.forEach(f => f.load());
+
+        this.miniWindow = null;
+
+        this.on('down', this.down.bind(this));
+    }
+
+    down(e){
+        if(this.miniWindow && !this.miniWindow.closed) return;
+
+        this.miniWindow = new MiniWindow('Draw text', 2);
+        const winEl = this.miniWindow.element;
+        if(mobile){
+            winEl.css('left', 0).css('top', 0);
+        }else{
+            winEl.css('left', window.screen.width/3).css('top', window.screen.height/3);
+        }
+
+        const innerHtml = $(`
+            <textarea style="width: 100%;"></textarea>
+            <div style="display:flex; margin: 2px 0">
+                <div style="display: flex">
+                    <div>x:</div> <input type="number" class="textXCord" style="width: 100%">
+                </div>
+                <div style="display: flex; margin-left: 2px">
+                    <div>y:</div> <input type="number" class="textYCord" style="width: 100%">
+                </div>
+            </div>
+        `);
+
+        this.miniWindow.bodyElement.css('max-width', 200).css('display', 'flex').css('flex-direction', 'column');
+        this.miniWindow.bodyElement.append(innerHtml);
+        document.body.appendChild(winEl[0]);
+
+        const textInput = $('textarea', this.miniWindow.bodyElement);
+        const xCordInput = $('.textXCord', this.miniWindow.bodyElement);
+        const yCordInput = $('.textYCord', this.miniWindow.bodyElement);
+
+        const lastCord = [player.x, player.y];
+        xCordInput.val(lastCord[0]);
+        yCordInput.val(lastCord[1]);
+
+        const font = this.fonts[0];
+
+        let lastText = null, lastColor = player.color, lastTextCanvas = null
+        const previewFx = new FX((ctx) => {
+            const text = textInput.val();
+            if(!text) return 0;
+
+            if(!font.loaded){
+                return 0;
+            }
+
+            // remap the sine value based on the time
+            // to the min-max opacity borders
+            ctx.globalAlpha = map(Math.sin(Date.now()/400), -1, 1, 0.2, 0.9);
+
+            const x = xCordInput.val();
+            const y = yCordInput.val();
+
+            if(lastText !== text || lastColor !== player.color){
+                lastText = text;
+                lastColor = player.color;
+                lastTextCanvas = font.drawText(lastText, hexPalette[lastColor]);
+            }
+
+            const [screenX, screenY] = boardToScreenSpace(x, y);
+
+            
+            ctx.save();
+            ctx.scale(camera.zoom, camera.zoom);
+
+            ctx.imageSmoothingEnabled = false;
+
+            const deZoomedX = screenX/camera.zoom;
+            const deZoomedY = screenY/camera.zoom;
+
+            if(~player.secondCol){
+                ctx.fillStyle = hexPalette[player.secondCol];
+                ctx.fillRect(deZoomedX, deZoomedY, lastTextCanvas.width, lastTextCanvas.height);
+            }
+            ctx.drawImage(lastTextCanvas, deZoomedX, deZoomedY);
+
+            ctx.restore();
+
+            return 0
+        })
+        addFX(previewFx);
+
+        this.miniWindow.on('okClicked', () => {
+            removeFX(previewFx);
+
+            const text = textInput.val();
+            if(!text || !lastTextCanvas) return;
+
+            // add background if second color is selected
+            if(~player.secondCol){
+                const ctx = lastTextCanvas.getContext('2d');
+                // draw only on opaque pixels
+                ctx.globalCompositeOperation = 'destination-over';
+                ctx.fillStyle = hexPalette[player.secondCol];
+                ctx.fillRect(0, 0, lastTextCanvas.width, lastTextCanvas.height);
+            }
+            
+            const x = +xCordInput.val();
+            const y = +yCordInput.val();
+
+            paste.startDraw(lastTextCanvas, x, y);
+        });
+
+        this.miniWindow.on('cancelClicked', () => {
+            removeFX(previewFx);
+        });
+    }
+}
+const text = new Text('text', 'KeyT', null, ROLE.TRUSTED)
 
 export default {
     clicker,
@@ -2004,5 +2304,6 @@ export default {
     templateOp1, templateOp2,
     square,
     incBrush, decBrush,
-    pixelInfo
+    pixelInfo,
+    text
 }

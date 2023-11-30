@@ -2,7 +2,7 @@ import EventEmitter from 'events'
 import interact from 'interactjs'
 
 function anyInputFocused() {
-    return document.activeElement.tagName === 'INPUT'
+    return document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA'
 }
 
 export default class EventManager extends EventEmitter {
