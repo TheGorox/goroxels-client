@@ -3,11 +3,13 @@ import Chunk from './Chunk';
 import {
     bgrPalette,
     argbToId,
-    boardWidth, boardHeight, chunkSize
+    boardWidth, boardHeight, chunkSize, canvasId
 } from './config';
 import {
     boardToChunk
 } from './utils/conversions'
+import { apiRequest } from './actions';
+import Pako from 'pako';
 
 export default class ChunkManager {
     constructor() {
@@ -15,17 +17,17 @@ export default class ChunkManager {
 
         this.loadingChunks = new Set();
 
-        globals.socket.on('chunk', (cx, cy, cdata) => {
-            let key = this.getChunkKey(cx, cy);
-            if (this.loadingChunks.has(key)){
-                this.loadingChunks.delete(key);
-            }
+        // globals.socket.on('chunk', (cx, cy, cdata) => {
+        //     let key = this.getChunkKey(cx, cy);
+        //     if (this.loadingChunks.has(key)){
+        //         this.loadingChunks.delete(key);
+        //     }
 
-            let chunk = new Chunk(cx, cy, cdata);
-            this.chunks.set(key, chunk);
+        //     let chunk = new Chunk(cx, cy, cdata);
+        //     this.chunks.set(key, chunk);
 
-            globals.renderer.needRender = true;
-        })
+        //     globals.renderer.needRender = true;
+        // })
 
         globals.socket.on('place', (x, y, col) => {
             this.setChunkPixel(x, y, col);
@@ -61,10 +63,27 @@ export default class ChunkManager {
     loadChunk(x, y) {
         let key = this.getChunkKey(x, y);
 
-        if (globals.socket.connected && !this.loadingChunks.has(key) && this.loadingChunks.size < 3) {
-            globals.socket.requestChunk(x, y);
-
+        if (globals.socket.connected && !this.loadingChunks.has(key) && this.loadingChunks.size < 5) {
             this.loadingChunks.add(key);
+            // globals.socket.requestChunk(x, y);
+            apiRequest(`/getchunk?canvas=${canvasId}&x=${x}&y=${y}`).then(async (resp) => {
+                
+                let key = this.getChunkKey(x, y);
+                if (this.loadingChunks.has(key)){
+                    this.loadingChunks.delete(key);
+                }
+
+                // use pako only if chunk got from socket
+                // const cdataCompressed = await resp.arrayBuffer();
+                // const cdata = Pako.inflate(cdataCompressed);
+
+                const cdata = await resp.arrayBuffer();
+
+                let chunk = new Chunk(x, y, new Uint8Array(cdata));
+                this.chunks.set(key, chunk);
+
+                globals.renderer.needRender = true;
+            });
         }
     }
 
